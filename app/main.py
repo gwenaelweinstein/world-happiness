@@ -42,8 +42,8 @@ if page == pages[2]:
     st.dataframe(whr)
 
     st.write('''
-        - The dataset is structured around 2 categorical variables (objects): :grey[*Country name*] and :grey[*year*]. Each record corresponds to the result of the survey for a given year and country: we call them *indexers*.
-        - The *target* is represented by the variable :grey[*Life Ladder*] (float).
+        - The dataset is structured around 2 categorical variables (objects): :red[*Country name*] and :red[*year*]. Each record corresponds to the result of the survey for a given year and country: we call them *indexers*.
+        - The *target* is represented by the variable :red[*Life Ladder*] (float).
         - All other variables (floats) are *features*.
     ''')
 
@@ -51,60 +51,68 @@ if page == pages[2]:
     
     with st.expander("Show variables definitions"):
         st.write('''
-            :grey[*Country name*]  
+            :red[*Country name*]  
             Country described by the data of the record.
         ''')
 
         st.write('''
-            :grey[*year*]  
+            :red[*year*]  
             Year of data recording for the row.
         ''')
 
         st.write('''
-            :grey[*Life Ladder*]  
+            :red[*Life Ladder*]  
             Happiness level of a country according to the Cantril ladder, a scale between 0 and 10.
         ''')
 
         st.write('''
-            :grey[*Log GDP per capita*]  
+            :red[*Log GDP per capita*]  
             Gross Domestic Product (GDP) per capita. This column provides information about the size and performance of the economy.
         ''')
 
         st.write('''
-            :grey[*Social support*]  
+            :red[*Social support*]  
             Ratio of respondents who answered *"YES"* to the question: *"If you encounter difficulties, do you have relatives or friends you can count on to help you?"*
         ''')
 
         st.write('''
-            :grey[*Healthy life expectancy at birth*]  
+            :red[*Healthy life expectancy at birth*]  
             Measures the physical and mental health of a country's population, based on data provided by the World Health Organization (WHO).
         ''')
 
         st.write('''
-            :grey[*Freedom to make life choices*]  
+            :red[*Freedom to make life choices*]  
             Ratio of respondents who answered *"YES"* to the question: *"Are you satisfied or dissatisfied with your freedom of choice/action?"*
         ''')
 
         st.write('''
-            :grey[*Generosity*]  
+            :red[*Generosity*]  
             Ratio of respondents who answered *"YES"* to the question: *"Did you donate money to a charity last month?"*
         ''')
 
         st.write('''
-            :grey[*Perceptions of corruption*]  
+            :red[*Perceptions of corruption*]  
             Perception by the population of the level of corruption in their country (at both political - institutions - and economic - businesses - levels).
         ''')
 
         st.write('''
-            :grey[*Positive affect*]  
+            :red[*Positive affect*]  
             Average of positive or negative responses given in relation to three emotions: laughter, pleasure, and interest.
         ''')
 
         st.write('''
-            :grey[*Negative affect*]  
+            :red[*Negative affect*]  
             Average of positive or negative responses given in relation to three emotions: concern, sadness, and anger.
         ''')
-    
-    st.write("")
 
-    st.caption("Note that the *year* variable has been cast to an object to prevent Streamlit from displaying it as a float with thousand separators, knowing that it is not used for time series in our context.")
+    st.caption("Note that the variable :red[*year*] has been cast to an object to prevent Streamlit from displaying it as a float with thousand separators, knowing that it is not used for time series in our context.")
+
+    st.subheader("Statistics")
+    st.dataframe(whr.describe().drop(index = ['count']), use_container_width = True)
+
+    st.write('''
+        - Number of rows:''', len(whr),
+        '''
+        - Number of countries:''', whr['Country name'].nunique(),
+        '''
+        - Years: from''', int(whr['year'].min()), '''to''', int(whr['year'].max()))
