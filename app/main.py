@@ -1,6 +1,5 @@
 import pandas as pd
 import plotly.express as px
-import plotly.figure_factory as ff
 import streamlit as st
 
 WHR_URL = 'https://happiness-report.s3.amazonaws.com/2023/DataForTable2.1WHR2023.xls'
@@ -122,13 +121,28 @@ if page == pages[2]:
     st.subheader("Distributions")
     for col in whr.drop(columns=['Country name', 'year']).columns:
         fig = px.histogram(whr, col, marginal='box')
-        fig.update_layout(margin_b=0)
-        fig.update_layout(margin_t=0)
-        fig.update_layout(margin_r=0)
-        fig.update_layout(margin_l=0)
+        fig.update_layout(margin={'t': 10, 'b': 10, 'l': 10, 'r': 10})
         st.plotly_chart(fig, use_container_width=True)
     
     st.write('''
         - The target variable :red[*Life Ladder*] resembles a normal distribution.
-        - All features show some outliers, which are not anomalies. For example, :blue[Haiti] shows a very low :red[*Healthy life expectancy at birth*] due to a natural disaster, while :blue[Venezuela] shows a very sharp fall in its :red[*Log GDP per capita*] following a major crisis of its economy.
+        - All features show some outliers, which are not anomalies. For example, :grey[Haiti] shows a very low :red[*Healthy life expectancy at birth*] due to a natural disaster, while :grey[Venezuela] shows a very sharp fall in its :red[*Log GDP per capita*] following a major crisis of its economy.
+    ''')
+
+    st.subheader("Correlations")
+    fig = px.imshow(
+        whr.drop(columns=['Country name', 'year']).corr(),
+        text_auto='.2f',
+        range_color=(-1, 1),
+        color_continuous_scale=['#2E9AFF', '#FFFFFF', '#FF4B4B']
+    )
+    fig.update_layout(margin={'t': 10, 'b': 10, 'l': 10, 'r': 10})
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.write('''
+        - :red[*Log GDP per capita*], :red[*Social support*] and :red[*Healthy life expectancy at birth*] have a strong positive correlation with :red[*Life Ladder*], suggesting that these factors may be essential to the well-being of individuals.
+        - :red[*Freedom to make life choices*] and :red[*Positive affect*] also show a moderately positive correlation with the target variable.
+        - :red[*Perceptions of corruption*] is moderately negatively correlated with :red[*Life Ladder*], indicating that a high level of corruption perceived can be detrimental to general well-being.
+        - :red[*Generosity*] shows relatively weak correlation scores.
+        - The strongest correlation observed concerns the relationship between :red[*Log GDP per capita*] and :red[*Healthy life expectancy at birth*].
     ''')
