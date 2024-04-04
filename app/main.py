@@ -1,4 +1,6 @@
 import pandas as pd
+import plotly.express as px
+import plotly.figure_factory as ff
 import streamlit as st
 
 WHR_URL = 'https://happiness-report.s3.amazonaws.com/2023/DataForTable2.1WHR2023.xls'
@@ -33,8 +35,6 @@ if page == pages[1]:
 
     st.write("> *With this project, we want to present this data using interactive visualizations and determine combinations of factors that explain why some countries are better ranked than others.*")
 
-    st.write("")
-
     st.caption("The current project and app have been done with data from the [2023 report](https://worldhappiness.report/ed/2023/). We may be able to test our process with data from 2024 at the end of this work.")
 
 if page == pages[2]:
@@ -46,8 +46,6 @@ if page == pages[2]:
         - The *target* is represented by the variable :red[*Life Ladder*] (float).
         - All other variables (floats) are *features*.
     ''')
-
-    st.write("")
     
     with st.expander("Show variables definitions"):
         st.write('''
@@ -118,7 +116,19 @@ if page == pages[2]:
         '''
         - Years: from''', int(whr['year'].min()), '''to''', int(whr['year'].max()))
 
-    st.write("")
-
     with st.expander("Show records by year and country"):
         st.bar_chart(whr, x='year', y='Country name')
+    
+    st.subheader("Distributions")
+    for col in whr.drop(columns=['Country name', 'year']).columns:
+        fig = px.histogram(whr, col, marginal='box')
+        fig.update_layout(margin_b=0)
+        fig.update_layout(margin_t=0)
+        fig.update_layout(margin_r=0)
+        fig.update_layout(margin_l=0)
+        st.plotly_chart(fig, use_container_width=True)
+    
+    st.write('''
+        - The target variable :red[*Life Ladder*] resembles a normal distribution.
+        - All features show some outliers, which are not anomalies. For example, :blue[Haiti] shows a very low :red[*Healthy life expectancy at birth*] due to a natural disaster, while :blue[Venezuela] shows a very sharp fall in its :red[*Log GDP per capita*] following a major crisis of its economy.
+    ''')
