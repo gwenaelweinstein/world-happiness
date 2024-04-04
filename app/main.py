@@ -110,9 +110,15 @@ if page == pages[2]:
     st.subheader("Statistics")
     st.dataframe(whr.describe().drop(index=['count']), use_container_width=True)
 
+    st.subheader("Details")
     st.write('''
         - Number of rows:''', len(whr),
         '''
         - Number of countries:''', whr['Country name'].nunique(),
         '''
         - Years: from''', int(whr['year'].min()), '''to''', int(whr['year'].max()))
+
+    st.write("")
+
+    with st.expander("Show records by year and country"):
+        st.bar_chart(whr, x='year', y='Country name')
