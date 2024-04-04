@@ -11,7 +11,7 @@ pages = ["Home",
         "Introduction",
         "Data exploration"]
 
-page = st.sidebar.radio("", options = pages)
+page = st.sidebar.radio("", options=pages)
 
 if page != pages[0]:
     st.header(page)
@@ -108,7 +108,7 @@ if page == pages[2]:
     st.caption("Note that the variable :red[*year*] has been cast to an object to prevent Streamlit from displaying it as a float with thousand separators, knowing that it is not used for time series in our context.")
 
     st.subheader("Statistics")
-    st.dataframe(whr.describe().drop(index = ['count']), use_container_width = True)
+    st.dataframe(whr.describe().drop(index=['count']), use_container_width=True)
 
     st.write('''
         - Number of rows:''', len(whr),
