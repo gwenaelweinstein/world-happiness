@@ -8,9 +8,9 @@ whr['year'] = whr['year'].astype(str)
 
 st.title("World Happiness on Earth")
 
-pages = ["Home",
-        "Introduction",
-        "Data exploration"]
+pages = ["Introduction",
+        "Data exploration",
+        "Data visualization"]
 
 page = st.sidebar.radio("", options=pages)
 
@@ -25,7 +25,6 @@ if page == pages[0]:
     st.image('assets/whr-cover.jpg', use_column_width=True)
     st.caption('Credits: image by [Phạm Quốc Nguyên](https://pixabay.com/fr/users/sanshiro-5833092)')
 
-if page == pages[1]:
     st.write("The **World Happiness Report** is a publication of the [Sustainable Development Solutions Network](https://www.unsdsn.org/) for the United Nations, and powered by [Gallup World Poll](https://www.gallup.com/178667/gallup-world-poll-work.aspx) data. Its goal is to give more importance to happiness and well-being as criteria for assessing government policies.")
 
     st.write("**Gallup World Poll** ratings are based on the *Cantril Ladder*, where respondents are asked to evaluate their own life by giving a grade between 0 (the worst life they can think of) and 10 (the best one). The **World Happiness Report** adds 6 socio-economic measures and 2 daily feelings.")
@@ -36,7 +35,7 @@ if page == pages[1]:
 
     st.caption("The current project and app have been done with data from the [2023 report](https://worldhappiness.report/ed/2023/). We may be able to test our process with data from 2024 at the end of this work.")
 
-if page == pages[2]:
+if page == pages[1]:
     st.subheader("Show data")
     st.dataframe(whr)
 
@@ -109,7 +108,7 @@ if page == pages[2]:
 
     st.subheader("Details")
     st.write('''
-        - Number of rows:''', len(whr),
+        - Number of records:''', len(whr),
         '''
         - Number of countries:''', whr['Country name'].nunique(),
         '''
@@ -117,16 +116,42 @@ if page == pages[2]:
 
     with st.expander("Show records by year and country"):
         st.bar_chart(whr, x='year', y='Country name')
+
+        st.caption("We observe that some countries show few recordings, and some - same or others - have not participated in the study recently. We may need to filter our dataset for modeling purposes.")
     
     st.subheader("Distributions")
     for col in whr.drop(columns=['Country name', 'year']).columns:
         fig = px.histogram(whr, col, marginal='box')
         fig.update_layout(margin={'t': 10, 'b': 10, 'l': 10, 'r': 10})
+        fig.update_layout({'plot_bgcolor': 'rgba(0, 0, 0, 0)', 'paper_bgcolor': 'rgba(0, 0, 0, 0)'})
         st.plotly_chart(fig, use_container_width=True)
     
     st.write('''
-        - The target variable :red[*Life Ladder*] resembles a normal distribution.
-        - All features show some outliers, which are not anomalies. For example, :grey[Haiti] shows a very low :red[*Healthy life expectancy at birth*] due to a natural disaster, while :grey[Venezuela] shows a very sharp fall in its :red[*Log GDP per capita*] following a major crisis of its economy.
+        - The *target* variable :red[*Life Ladder*] resembles a normal distribution.
+        - All *features* show some outliers, which are not anomalies. For example, :grey[Haiti] shows a very low :red[*Healthy life expectancy at birth*] due to a natural disaster, while :grey[Venezuela] shows a very sharp fall in its :red[*Log GDP per capita*] following a major crisis of its economy.
+    ''')
+
+    st.subheader("Missing values")
+    st.write("We know for sure that *target* (:red[*Life Ladder*]) and *indexers* (:red[*Country name*] and :red[*year*]) show no missing values.")
+
+    nans_per_variable_show_len_toggle = st.toggle("Show missing values compared to total records")
+
+    fig = px.bar(whr.drop(columns=['Life Ladder', 'Country name', 'year']).isna().sum())
+    
+    fig.update_layout(margin={'t': 10, 'b': 10, 'l': 10, 'r': 10})
+    fig.update_layout({'plot_bgcolor': 'rgba(0, 0, 0, 0)', 'paper_bgcolor': 'rgba(0, 0, 0, 0)'})
+    fig.update_layout(showlegend=False)
+    fig.update_layout(yaxis_title='Number of missing values', xaxis_title=None)
+    
+    if nans_per_variable_show_len_toggle:
+        fig.add_hline(y=len(whr), line_color='blue', line_width=1, annotation_text='Total records')
+    
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.write('''
+        - All *features* show some missing values.
+        - The dataset show''', whr.isna().sum().sum(), '''total missing values.
+        - Missing values represent''', round(whr.isna().sum().sum() * 100 / (len(whr) * 8), 2), '''percent of all data in *features*.
     ''')
 
     st.subheader("Correlations")
@@ -137,6 +162,7 @@ if page == pages[2]:
         color_continuous_scale=['#2E9AFF', '#FFFFFF', '#FF4B4B']
     )
     fig.update_layout(margin={'t': 10, 'b': 10, 'l': 10, 'r': 10})
+    fig.update_layout({'plot_bgcolor': 'rgba(0, 0, 0, 0)', 'paper_bgcolor': 'rgba(0, 0, 0, 0)'})
     st.plotly_chart(fig, use_container_width=True)
 
     st.write('''
