@@ -8,9 +8,11 @@ whr['year'] = whr['year'].astype(str)
 
 st.title("World Happiness on Earth")
 
-pages = ["Introduction",
-        "Data exploration",
-        "Data visualization"]
+pages = [
+    "Introduction",
+    "Data exploration",
+    "Data visualization"
+]
 
 page = st.sidebar.radio("", options=pages)
 
@@ -25,6 +27,7 @@ if page == pages[0]:
     st.image('assets/whr-cover.jpg', use_column_width=True)
     st.caption('Credits: image by [Phạm Quốc Nguyên](https://pixabay.com/fr/users/sanshiro-5833092)')
 
+    st.subheader("Context and goal")
     st.write("The **World Happiness Report** is a publication of the [Sustainable Development Solutions Network](https://www.unsdsn.org/) for the United Nations, and powered by [Gallup World Poll](https://www.gallup.com/178667/gallup-world-poll-work.aspx) data. Its goal is to give more importance to happiness and well-being as criteria for assessing government policies.")
 
     st.write("**Gallup World Poll** ratings are based on the *Cantril Ladder*, where respondents are asked to evaluate their own life by giving a grade between 0 (the worst life they can think of) and 10 (the best one). The **World Happiness Report** adds 6 socio-economic measures and 2 daily feelings.")
@@ -123,7 +126,7 @@ if page == pages[1]:
     for col in whr.drop(columns=['Country name', 'year']).columns:
         fig = px.histogram(whr, col, marginal='box')
         fig.update_layout(margin={'t': 10, 'b': 10, 'l': 10, 'r': 10})
-        fig.update_layout({'plot_bgcolor': 'rgba(0, 0, 0, 0)', 'paper_bgcolor': 'rgba(0, 0, 0, 0)'})
+        fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
         st.plotly_chart(fig, use_container_width=True)
     
     st.write('''
@@ -139,12 +142,12 @@ if page == pages[1]:
     fig = px.bar(whr.drop(columns=['Life Ladder', 'Country name', 'year']).isna().sum())
     
     fig.update_layout(margin={'t': 10, 'b': 10, 'l': 10, 'r': 10})
-    fig.update_layout({'plot_bgcolor': 'rgba(0, 0, 0, 0)', 'paper_bgcolor': 'rgba(0, 0, 0, 0)'})
+    fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
     fig.update_layout(showlegend=False)
-    fig.update_layout(yaxis_title='Number of missing values', xaxis_title=None)
+    fig.update_layout(yaxis_title="Number of missing values", xaxis_title=None)
     
     if nans_per_variable_show_len_toggle:
-        fig.add_hline(y=len(whr), line_color='blue', line_width=1, annotation_text='Total records')
+        fig.add_hline(y=len(whr), line_color='blue', line_width=1, annotation_text="Total records")
     
     st.plotly_chart(fig, use_container_width=True)
 
@@ -162,7 +165,7 @@ if page == pages[1]:
         color_continuous_scale=['#2E9AFF', '#FFFFFF', '#FF4B4B']
     )
     fig.update_layout(margin={'t': 10, 'b': 10, 'l': 10, 'r': 10})
-    fig.update_layout({'plot_bgcolor': 'rgba(0, 0, 0, 0)', 'paper_bgcolor': 'rgba(0, 0, 0, 0)'})
+    fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
     st.plotly_chart(fig, use_container_width=True)
 
     st.write('''
@@ -172,3 +175,109 @@ if page == pages[1]:
         - :red[*Generosity*] shows relatively weak correlation scores.
         - The strongest correlation observed concerns the relationship between :red[*Log GDP per capita*] and :red[*Healthy life expectancy at birth*].
     ''')
+
+if page == pages[2]:
+    st.subheader("Global preview")
+    geo_target_col1, geo_target_col2 = st.columns(2, gap='large')
+    
+    with geo_target_col1:
+        geo_target_scope = st.selectbox("Zoom in",
+            ('world', 'africa', 'asia', 'europe', 'north america', 'south america'),
+            format_func=lambda x: x.title()
+        )
+
+    with geo_target_col2:
+        geo_target_year = st.select_slider("Select year", sorted(whr['year'].unique()), value=whr['year'].max())
+    
+    fig = px.scatter_geo(
+        whr[whr['year'] == geo_target_year],
+        scope=geo_target_scope,
+        projection='natural earth',
+        locations='Country name',
+        locationmode='country names',
+        color='Life Ladder',
+        size='Life Ladder',
+        color_continuous_scale=['#FF4B4B', '#FFFF00', '#09AB3B']
+    )
+
+    fig.update_layout(margin={'t': 0, 'b': 0, 'l': 0, 'r': 0})
+    fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
+    fig.update_geos(bgcolor='rgba(0, 0, 0, 0)')
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.write("The map shows some clusters, especially with high happiness levels for :grey[the West] and lowest ones in :grey[Africa] and :grey[Middle East].")
+
+    st.write("The year", 2005, "is an exception, with very few countries participating to the survey and very high levels for the *target* variable, meaning this year can't be globally compared to the others. However,", 2005, "values are consistent with next years values for these countries.")
+
+    st.subheader("Per country")
+    country_viz_filter_col1, country_viz_filter_col2 = st.columns(2, gap='large')
+
+    with country_viz_filter_col1:
+        country_viz_country = st.selectbox(
+            "Choose a country",
+            sorted(whr['Country name'].unique())
+        )
+    
+    with country_viz_filter_col2:
+        country_viz_variable = st.selectbox(
+            "Choose a variable",
+            whr.columns.drop(['Country name', 'year'])
+        )
+
+    if len(whr[whr['Country name'] == country_viz_country][country_viz_variable].dropna()) > 1:
+        fig = px.line(
+            whr[whr['Country name'] == country_viz_country],
+            x='year',
+            y=country_viz_variable,
+            markers=True,
+            labels={"year": "", "value": country_viz_variable})
+   
+        fig.add_hline(
+            y=whr[whr['Country name'] == country_viz_country][country_viz_variable].mean(),
+            line_color='blue', line_width=1, annotation_text="Mean accross years"
+        )
+    
+        fig.update_layout(margin={'t': 10, 'b': 10, 'l': 10, 'r': 10})
+        fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
+        fig.update_layout(showlegend=False)
+
+        st.plotly_chart(fig, use_container_width=True)
+
+        country_viz_metric_col1, country_viz_metric_col2, country_viz_metric_col3 = st.columns(3, gap='large')
+
+        with country_viz_metric_col1:
+            country_viz_metric1_list = whr[whr['Country name'] == country_viz_country][country_viz_variable].dropna().tolist()
+
+            st.metric("Last record",
+                round(country_viz_metric1_list[-1], 2),
+                delta=round(country_viz_metric1_list[-1] - country_viz_metric1_list[-2], 2),
+                help="compared to previous record"
+            )
+
+        with country_viz_metric_col2:
+            country_viz_metric2 = whr[whr['Country name'] == country_viz_country][country_viz_variable].mean()
+            country_viz_metric2_delta = whr[whr['Country name'] != country_viz_country][country_viz_variable].mean()
+
+            st.metric("Mean",
+                round(country_viz_metric2, 2),
+                round(country_viz_metric2 - country_viz_metric2_delta, 2),
+                help="compared to world mean"
+            )
+
+        with country_viz_metric_col3:
+            if country_viz_country in whr[whr['year'] == whr['year'].max()]['Country name'].values:
+                country_viz_metric3_sorted = whr[whr['year'] == whr['year'].max()].sort_values(country_viz_variable, ascending=False).reset_index()
+
+                country_viz_metric3 = country_viz_metric3_sorted[country_viz_metric3_sorted['Country name'] == country_viz_country].index[0] + 1
+
+                st.metric("Rank for " + whr['year'].max(),
+                    country_viz_metric3,
+                    help="out of " + str(len(country_viz_metric3_sorted)) + " countries"
+                )
+            
+            else:
+                st.error("No record for " + country_viz_country + " in " + whr['year'].max() + ".")
+    
+    else:
+        st.error("Not enough records available.")
