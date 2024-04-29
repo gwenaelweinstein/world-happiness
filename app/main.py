@@ -11,7 +11,8 @@ st.title("World Happiness on Earth")
 pages = [
     "Introduction",
     "Data exploration",
-    "Data visualization"
+    "Data visualization",
+    "Preprocessing"
 ]
 
 page = st.sidebar.radio("", options=pages)
@@ -120,7 +121,7 @@ if page == pages[1]:
     with st.expander("Show records by year and country"):
         st.bar_chart(whr, x='year', y='Country name')
 
-        st.caption("We observe that some countries show few recordings, and some - same or others - have not participated in the study recently. We may need to filter our dataset for modeling purposes.")
+        st.caption("We observe that some countries show few records, and some - same or others - have not participated in the study recently. We may need to filter our dataset for modeling purposes.")
     
     st.subheader("Distributions")
     for col in whr.drop(columns=['Country name', 'year']).columns:
@@ -281,3 +282,109 @@ if page == pages[2]:
     
     else:
         st.error("Not enough records available.")
+
+if page == pages[3]:
+    st.subheader("Filtering")
+    st.write("As seen previously, the dataset is specific as it is structured around two indexing variables: the :red[*Country name*] and the :red[*year*].")
+    
+    st.write("Consequently, the holdout part of the upcoming modeling process will not be conducted randomly: the test subset will consist of the most recent records.")
+    
+    st.write("We need to filter the dataset to keep a sufficiently representative amount of countries with records in a very restricted range of most recent year.")
+
+    max_year_per_country = whr.groupby('Country name').agg({'year': 'max'})
+
+    st.dataframe(
+        max_year_per_country.value_counts().sort_index(ascending=False).head(),
+        column_config={'count': st.column_config.Column("Number of records", width='medium')}
+    )
+
+    st.write("We can keep countries with records for", 2022, "and", 2021, ":")
+
+    countries_to_keep = max_year_per_country[max_year_per_country['year'].isin(['2022', '2021'])]
+    whr_pp = whr[whr['Country name'].isin(countries_to_keep.index)].reset_index(drop=True)
+
+    st.code(
+        '''
+        # original dataframe is named 'whr'
+        max_year_per_country = whr.groupby('Country name').agg({'year': 'max'})
+        countries_to_keep = max_year_per_country[max_year_per_country['year'].isin(['2022', '2021'])]
+        # new dataframe for preprocessing
+        whr_pp = whr[whr['Country name'].isin(countries_to_keep.index)].reset_index(drop=True)
+        ''',
+        language='python'
+    )
+
+    st.write(
+        "We kept", len(whr_pp), "records for", len(countries_to_keep), "countries,",
+        "compared to", len(whr), "records for", whr['Country name'].nunique(), "countries before filtering."
+    )
+
+    st.subheader("Handling missing values")
+
+    st.write("Linear interpolation is an efficient method for estimating missing values ​​based on adjacent data points. Regarding our dataset, it means we can fill data gaps based on observed trends for each country.")
+
+    st.write("In return, this method requires handling missing values before the holdout step.")
+
+    st.write("However, we observe very low variance and standard deviation in our dataset for each country, which significantly mitigates the risk of data leakage, as shown below:")
+
+    var_countries = whr_pp.drop(columns = ['year', 'Life Ladder']).groupby('Country name').var()
+    st.dataframe(
+        var_countries.describe().loc[['mean', 'min', '25%', '50%', '75%', 'max']].round(2).transpose(),
+        column_config={
+            '': st.column_config.Column("Variance per country", width='medium'),
+            '25%': st.column_config.Column("Q1"),
+            '50%': st.column_config.Column("Q2"),
+            '75%': st.column_config.Column("Q3")
+        },
+        use_container_width=True
+    )
+    
+    std_countries = whr_pp.drop(columns = ['year', 'Life Ladder']).groupby('Country name').std()
+    st.dataframe(
+        std_countries.describe().loc[['mean', 'min', '25%', '50%', '75%', 'max']].round(2).transpose(),
+        column_config={
+            '': st.column_config.Column("Standard deviation per country", width='medium'),
+            '25%': st.column_config.Column("Q1"),
+            '50%': st.column_config.Column("Q2"),
+            '75%': st.column_config.Column("Q3")
+        },
+        use_container_width=True
+    )
+
+    st.write("We can now interpolate missing values for each country, like this:")
+
+    st.code(
+        '''
+        for country in whr_pp['Country name'].unique():
+            country_data = whr_pp[whr_pp['Country name'] == country]
+            country_data = country_data.interpolate(method='linear', limit_direction='both')
+            whr_pp.update(country_data)
+        ''',
+        language='python'
+    )
+
+    whrpp_nans_before = whr_pp.isna().sum().sum()
+
+    for country in whr_pp['Country name'].unique():
+        country_data = whr_pp[whr_pp['Country name'] == country]
+        country_data = country_data.interpolate(method='linear', limit_direction='both')
+        whr_pp.update(country_data)
+    
+    st.write("We reduced missing values from", whrpp_nans_before, "to", whr_pp.isna().sum().sum(), "corresponding to completely empty Series, that we can fill with mean values per year:")
+
+    st.code(
+        '''
+        for col in whr_pp.drop(columns=['Country name', 'year']).columns:
+            whr_pp[col] = whr_pp.groupby(['year'])[col].transform(lambda x: x.fillna(x.mean()))
+        ''',
+        language='python'
+    )
+
+    for col in whr_pp.drop(columns=['Country name', 'year']).columns:
+        whr_pp[col] = whr_pp.groupby(['year'])[col].transform(lambda x: x.fillna(x.mean()))
+
+    st.subheader("Feature scaling")
+
+    st.write("All features are numerical and at the same scale, except for :red[*Log GDP per capita*] and :red[*Healthy life expectancy at birth*].")
+
+    st.write("We may need to use standardization before modeling.")
