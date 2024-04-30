@@ -19,7 +19,8 @@ pages = [
     "Introduction",
     "Data exploration",
     "Data visualization",
-    "Preprocessing"
+    "Preprocessing",
+    "Modeling"
 ]
 
 page = st.sidebar.radio("", options=pages)
@@ -395,3 +396,58 @@ if page == pages[3]:
     st.write("All features are numerical and at the same scale, except for :red[*Log GDP per capita*] and :red[*Healthy life expectancy at birth*].")
 
     st.write("We may need to use standardization before modeling.")
+
+if page == pages[4]:
+    st.subheader("Classification")
+
+    st.write("The machine learning problem at hand involves predicting a continuous variable, the :red[*Life Ladder*], relying on 8 independent numerical variables as *features*.")
+
+    st.write("> *Therefore, this project pertains to an issue of linear regression.*")
+
+    st.subheader("Performance metrics")
+    
+    st.markdown('''
+        :grey[R\u00b2]  
+        To estimate the contribution of each independent variable to explaining the value of the *target* variable, we must ensure that the model is able to explain a sufficient portion of the variance. We can do this with the coefficient of determination (R-Squared).
+    ''')
+
+    st.markdown('''
+        :grey[MAE]  
+        The coefficient of determination alone is not sufficient, as it does not take into account the magnitude of errors. Mean Absolute Error gives a first overview easy to interpret, with the advantage of being less sensitive to outliers.
+    ''')
+
+    st.markdown('''
+        :grey[RMSE]  
+        Mean Squared Error and Root Mean Squared Error are more sensitive to outliers than MAE, allowing to detect the potential presence of large discrepancies in predictions. RMSE is easier to interpret compared to the *target* variable and MAE, as it is on the same scale.
+    ''')
+
+    st.caption("If the accuracy of our predictions is a good performance indicator for our model, the focus will mainly be on interpreting these results.")
+
+    st.subheader("Model selection")
+
+    st.write("In order to determine the most suitable model for our problem, we compared the following models:")
+
+    st.markdown('''
+        :grey[Linear Regression]  
+        Linear regression is relevant for our project, as it is simple to interpret and performs well on linear relationships between target and explanatory variables.
+    ''')
+
+    st.markdown('''
+        :grey[Decision Tree]  
+        This model is also quite straightforward to interpret. Moreover, the ability to visualize the path leading to the prediction can particularly highlight the role played by each explanatory variable.
+    ''')
+
+    st.markdown('''
+        :grey[Random Forest]  
+        Random forests are theoretically more generalizable than decision trees, and thus less prone to overfitting. With this model, we also seek to capture potential complex relationships between variables beyond what linear regression allows.
+    ''')
+
+    st.markdown('''
+        :grey[Support Vector Regression (SVR)]  
+        Similar to random forests, SVR is less prone to overfitting and can uncover complex, nonlinear relationships. It also performs well with small data volumes like ours.
+    ''')
+
+    st.markdown('''
+        :grey[K-Nearest Neighbors (KNN)]  
+        Similar to linear regression, this model is recognized for its simplicity and effectiveness. As the name suggests, it relies on the nearest samples to make predictions. Our dataset seems well suited for this model, as it contains country-level data over multiple years.
+    ''')
