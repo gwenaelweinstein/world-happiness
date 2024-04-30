@@ -3,8 +3,15 @@ import plotly.express as px
 import streamlit as st
 
 WHR_URL = 'https://happiness-report.s3.amazonaws.com/2023/DataForTable2.1WHR2023.xls'
-whr = pd.read_excel(WHR_URL)
-whr['year'] = whr['year'].astype(str)
+
+@st.cache_data
+def main_df():
+    df = pd.read_excel(WHR_URL)
+    df['year'] = df['year'].astype(str)
+
+    return df
+
+whr = main_df()
 
 st.title("World Happiness on Earth")
 
