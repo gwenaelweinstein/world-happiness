@@ -1,0 +1,5 @@
+pandas
+plotly
+scipy
+streamlit
+xlrd
