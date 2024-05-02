@@ -1,6 +1,14 @@
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.model_selection import GridSearchCV
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVR
+from sklearn.tree import DecisionTreeRegressor
 
 WHR_URL = 'https://happiness-report.s3.amazonaws.com/2023/DataForTable2.1WHR2023.xls'
 
@@ -12,6 +20,9 @@ def main_df():
     return df
 
 whr = main_df()
+
+if 'whr_pp' not in st.session_state:
+    st.session_state.whr_pp = None
 
 st.title("World Happiness on Earth")
 
@@ -190,7 +201,8 @@ if page == pages[2]:
     geo_target_col1, geo_target_col2 = st.columns(2, gap='large')
     
     with geo_target_col1:
-        geo_target_scope = st.selectbox("Zoom in",
+        geo_target_scope = st.selectbox(
+            "Zoom in",
             ('world', 'africa', 'asia', 'europe', 'north america', 'south america'),
             format_func=lambda x: x.title()
         )
@@ -397,6 +409,9 @@ if page == pages[3]:
 
     st.write("We may need to use standardization before modeling.")
 
+    if st.session_state.whr_pp is None:
+        st.session_state.whr_pp = whr_pp
+
 if page == pages[4]:
     st.subheader("Classification")
 
@@ -451,3 +466,173 @@ if page == pages[4]:
         :grey[K-Nearest Neighbors (KNN)]  
         Similar to linear regression, this model is recognized for its simplicity and effectiveness. As the name suggests, it relies on the nearest samples to make predictions. Our dataset seems well suited for this model, as it contains country-level data over multiple years.
     ''')
+
+    st.subheader("Process")
+
+    if st.session_state.whr_pp is None:
+        st.error("You need to run *Preprocessing* step before processing modeling.")
+    
+    else:
+        whr_pp = st.session_state.whr_pp
+
+        whr_pp_last_years = whr_pp.groupby("Country name")['year'].max()
+
+        whr_pp_test = whr_pp[whr_pp.apply(lambda x: x['year'] == whr_pp_last_years[x['Country name']], axis=1)]
+        whr_pp_train = whr_pp.drop(whr_pp_test.index)
+
+        modeling_features_options = st.multiselect(
+            "Select features",
+            whr_pp.drop(columns=['Country name', 'year', 'Life Ladder']).columns.tolist(),
+            whr_pp.drop(columns=['Country name', 'year', 'Life Ladder']).columns.tolist()
+        )
+
+        modeling_models = {
+            'Linear Regression': (LinearRegression(), None),
+            'Decision Tree': (DecisionTreeRegressor(), {
+                'max_depth': [2, 4, 6],
+                'min_samples_split': [2, 5, 10],
+                'min_samples_leaf': [1, 5],
+                'max_features': [1.0, 'sqrt', 'log2']
+            }),
+            'Random Forest': (RandomForestRegressor(), {
+                'n_estimators': [1, 10, 100],
+                'max_depth': [2, 4, 6],
+                'min_samples_split': [2, 5, 10],
+                'min_samples_leaf': [1, 5],
+                'max_features': [1.0, 'sqrt', 'log2']
+            }),
+            'SVR': (SVR(), {
+                'kernel': ['rbf', 'linear', 'poly', 'sigmoid'],
+                'C': [0.1, 1.0, 10.0],
+                'epsilon': [0.1, 0.01, 0.001]
+            }),
+            'KNN': (KNeighborsRegressor(), {
+                'n_neighbors': [3, 5, 7, 10],
+                'weights': ['uniform', 'distance'],
+                'metric': ['euclidean', 'manhattan']
+            })
+        }
+
+        modeling_model_select = st.selectbox(
+            "Choose a model",
+            modeling_models.keys()
+        )
+
+        if not modeling_features_options:
+            st.error("At least one feature is necessary.")
+        
+        else:
+            X_train = whr_pp_train[modeling_features_options]
+            X_test = whr_pp_test[modeling_features_options]
+            y_train = whr_pp_train['Life Ladder']
+            y_test = whr_pp_test['Life Ladder']
+
+            sc = StandardScaler()
+            X_train.loc[:, modeling_features_options] = sc.fit_transform(X_train[modeling_features_options])
+            X_test.loc[:, modeling_features_options] = sc.transform(X_test[modeling_features_options])
+
+            modeling_model = modeling_models[modeling_model_select][0]
+
+            modeling_model_fit = modeling_model.fit(X_train, y_train)
+
+            y_pred_train = modeling_model_fit.predict(X_train)
+            y_pred_test = modeling_model_fit.predict(X_test)
+
+            R2_train = modeling_model_fit.score(X_train, y_train)
+            R2_test = modeling_model_fit.score(X_test, y_test)
+
+            MAE_train = mean_absolute_error(y_train, y_pred_train)
+            MAE_test = mean_absolute_error(y_test, y_pred_test)
+
+            RMSE_train = mean_squared_error(y_train, y_pred_train, squared = False)
+            RMSE_test = mean_squared_error(y_test, y_pred_test, squared = False)
+
+            modeling_metrics_metric_col1, modeling_metrics_metric_col2, modeling_metrics_metric_col3 = st.columns(3, gap='large')
+
+            with modeling_metrics_metric_col1:
+                st.metric("R2 Test",
+                    round(R2_test, 2),
+                    delta=round(R2_test - R2_train, 2),
+                    help="R2 Train = " + str(round(R2_train, 2))
+                )
+
+            with modeling_metrics_metric_col2:
+                st.metric("MAE Test",
+                    round(MAE_test, 2),
+                    delta=round(MAE_test - MAE_train, 2),
+                    delta_color='inverse',
+                    help="MAE Train = " + str(round(MAE_train, 2))
+                )
+
+            with modeling_metrics_metric_col3:
+                st.metric("RMSE Test",
+                    round(RMSE_test, 2),
+                    delta=round(RMSE_test - RMSE_train, 2),
+                    delta_color='inverse',
+                    help="RMSE Train = " + str(round(RMSE_train, 2))
+                )
+
+            st.caption("Delta in these metrics show how Test results behave compared to Train results.")
+
+            st.write('''
+                - Every *feature* contributes to improvig the model's performance, even marginally: there is no way to enhance the model by removing any of them.
+                - :grey[Linear regression] seems to have less favorable performance compared to other models, but it is also the most robust: all other models exhibit overfitting.
+            ''')
+
+            st.write("> *In order to find the best compromise between performance and robustness, we'll try to optimize each of these models with :grey[Grid Search] to determine the best hyperparameters.*")
+
+            st.warning("Grid Search optimization with many models and parameters can take a very long time, proceed with caution.", icon='⚠️')
+
+            gs_proceed = st.button("Proceed to Grid Search optimization", type='primary')
+            
+            if gs_proceed:
+                gs_metrics = pd.DataFrame(columns=['Model', 'Set', 'R2', 'MAE', 'RMSE'])
+                
+                for gs_item in modeling_models:
+                    if modeling_models[gs_item][1]:
+                        param_grid = modeling_models[gs_item][1]
+                        
+                        gs = GridSearchCV(
+                            estimator = modeling_models[gs_item][0],
+                            param_grid = param_grid, cv = 5,
+                            scoring = 'r2'
+                        )
+                        
+                        gs.fit(X_train, y_train)
+
+                        gs_model = gs.best_estimator_
+
+                    else:
+                        gs_model = modeling_models[gs_item][0].fit(X_train, y_train)
+                    
+                    gs_y_pred_train = gs_model.predict(X_train)
+                    gs_y_pred_test = gs_model.predict(X_test)
+
+                    gs_R2_train = gs_model.score(X_train, y_train)
+                    gs_R2_test = gs_model.score(X_test, y_test)
+
+                    gs_MAE_train = mean_absolute_error(y_train, gs_y_pred_train)
+                    gs_MAE_test = mean_absolute_error(y_test, gs_y_pred_test)
+
+                    gs_RMSE_train = mean_squared_error(y_train, gs_y_pred_train, squared = False)
+                    gs_RMSE_test = mean_squared_error(y_test, gs_y_pred_test, squared = False)
+                
+                    gs_metrics.loc[len(gs_metrics.index)] = [
+                        gs_item,
+                        "Train",
+                        gs_R2_train,
+                        gs_MAE_train,
+                        gs_RMSE_train
+                    ]
+
+                    gs_metrics.loc[len(gs_metrics.index)] = [
+                        gs_item,
+                        "Test",
+                        gs_R2_test,
+                        gs_MAE_test,
+                        gs_RMSE_test
+                    ]
+
+                st.dataframe(gs_metrics, hide_index=True, use_container_width=True)
+
+            st.write("> *No other model shows a better compromise between performance and robustness than :grey[Linear Regression] after Grid Search optimization: either the model suffers from a great loss of performance, or we are not able to reduce overfitting enough.*")
