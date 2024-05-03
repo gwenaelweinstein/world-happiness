@@ -22,6 +22,9 @@ features = whr.drop(columns=[country_label, year_label, target_label]).columns.t
 if 'whr_pp' not in st.session_state:
     st.session_state.whr_pp = None
 
+if 'gs_metrics' not in st.session_state:
+    st.session_state.gs_metrics = None
+
 st.title("World Happiness on Earth")
 
 pages = [
@@ -530,58 +533,66 @@ if page == pages[4]:
 
             st.write("> *In order to find the best compromise between performance and robustness, we'll try to optimize each of these models with :grey[Grid Search] to determine the best hyperparameters.*")
 
-            st.warning("Grid Search optimization with many models and parameters can take a very long time, proceed with caution.", icon='⚠️')
+            if st.session_state.gs_metrics is None:
+                st.warning("Grid Search optimization with many models and parameters can take a very long time, proceed with caution.", icon='⚠️')
 
-            gs_proceed = st.button("Proceed to Grid Search optimization", type='primary')
+                gs_proceed = st.button("Proceed to Grid Search optimization", type='primary')
             
-            if gs_proceed:
-                gs_metrics = pd.DataFrame(columns=['Model', 'Set', 'R2', 'MAE', 'RMSE'])
-                
-                for gs_item in modeling_models:
-                    if modeling_models[gs_item][1]:
-                        param_grid = modeling_models[gs_item][1]
-                        
-                        gs = GridSearchCV(
-                            estimator = modeling_models[gs_item][0],
-                            param_grid = param_grid, cv = 5,
-                            scoring = 'r2'
-                        )
-                        
-                        gs.fit(X_train, y_train)
-
-                        gs_model = gs.best_estimator_
-
-                    else:
-                        gs_model = modeling_models[gs_item][0].fit(X_train, y_train)
+                if gs_proceed:
+                    gs_proceed.disabled = True
                     
-                    gs_y_pred_train = gs_model.predict(X_train)
-                    gs_y_pred_test = gs_model.predict(X_test)
-
-                    gs_R2_train = gs_model.score(X_train, y_train)
-                    gs_R2_test = gs_model.score(X_test, y_test)
-
-                    gs_MAE_train = mean_absolute_error(y_train, gs_y_pred_train)
-                    gs_MAE_test = mean_absolute_error(y_test, gs_y_pred_test)
-
-                    gs_RMSE_train = mean_squared_error(y_train, gs_y_pred_train, squared = False)
-                    gs_RMSE_test = mean_squared_error(y_test, gs_y_pred_test, squared = False)
+                    gs_metrics = pd.DataFrame(columns=['Model', 'Set', 'R2', 'MAE', 'RMSE'])
                 
-                    gs_metrics.loc[len(gs_metrics.index)] = [
-                        gs_item,
-                        "Train",
-                        gs_R2_train,
-                        gs_MAE_train,
-                        gs_RMSE_train
-                    ]
+                    for gs_item in modeling_models:
+                        if modeling_models[gs_item][1]:
+                            param_grid = modeling_models[gs_item][1]
+                        
+                            gs = GridSearchCV(
+                                estimator = modeling_models[gs_item][0],
+                                param_grid = param_grid, cv = 5,
+                                scoring = 'r2'
+                            )
+                        
+                            gs.fit(X_train, y_train)
 
-                    gs_metrics.loc[len(gs_metrics.index)] = [
-                        gs_item,
-                        "Test",
-                        gs_R2_test,
-                        gs_MAE_test,
-                        gs_RMSE_test
-                    ]
+                            gs_model = gs.best_estimator_
 
-                st.dataframe(gs_metrics, hide_index=True, use_container_width=True)
+                        else:
+                            gs_model = modeling_models[gs_item][0].fit(X_train, y_train)
+                    
+                        gs_y_pred_train = gs_model.predict(X_train)
+                        gs_y_pred_test = gs_model.predict(X_test)
 
+                        gs_R2_train = gs_model.score(X_train, y_train)
+                        gs_R2_test = gs_model.score(X_test, y_test)
+
+                        gs_MAE_train = mean_absolute_error(y_train, gs_y_pred_train)
+                        gs_MAE_test = mean_absolute_error(y_test, gs_y_pred_test)
+
+                        gs_RMSE_train = mean_squared_error(y_train, gs_y_pred_train, squared = False)
+                        gs_RMSE_test = mean_squared_error(y_test, gs_y_pred_test, squared = False)
+                
+                        gs_metrics.loc[len(gs_metrics.index)] = [
+                            gs_item,
+                            "Train",
+                            gs_R2_train,
+                            gs_MAE_train,
+                            gs_RMSE_train
+                        ]
+
+                        gs_metrics.loc[len(gs_metrics.index)] = [
+                            gs_item,
+                            "Test",
+                            gs_R2_test,
+                            gs_MAE_test,
+                            gs_RMSE_test
+                        ]
+                    
+                    st.dataframe(gs_metrics, hide_index=True, use_container_width=True)
+
+                    st.session_state.gs_metrics = gs_metrics
+
+            else:
+                st.dataframe(st.session_state.gs_metrics, hide_index=True, use_container_width=True)
+            
             st.write("> *No other model shows a better compromise between performance and robustness than :grey[Linear Regression] after :grey[Grid Search] optimization: either the model suffers from a great loss of performance, or we are not able to reduce overfitting enough.*")
