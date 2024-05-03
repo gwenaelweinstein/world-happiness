@@ -1,3 +1,5 @@
+import dataframes as dfr
+import datasets as dst
 import pandas as pd
 import plotly.express as px
 import streamlit as st
@@ -10,16 +12,12 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVR
 from sklearn.tree import DecisionTreeRegressor
 
-WHR_URL = 'https://happiness-report.s3.amazonaws.com/2023/DataForTable2.1WHR2023.xls'
+whr = dfr.get_df('2023')
 
-@st.cache_data
-def main_df():
-    df = pd.read_excel(WHR_URL)
-    df['year'] = df['year'].astype(str)
-
-    return df
-
-whr = main_df()
+country_label = dfr.get_label('country')
+year_label = dfr.get_label('year')
+target_label = dfr.get_label('target')
+features = whr.drop(columns=[country_label, year_label, target_label]).columns.tolist()
 
 if 'whr_pp' not in st.session_state:
     st.session_state.whr_pp = None
@@ -62,69 +60,20 @@ if page == pages[1]:
     st.subheader("Show data")
     st.dataframe(whr)
 
-    st.write('''
-        - The dataset is structured around 2 categorical variables (objects): :red[*Country name*] and :red[*year*]. Each record corresponds to the result of the survey for a given year and country: we call them *indexers*.
-        - The *target* is represented by the variable :red[*Life Ladder*] (float).
+    st.write(f'''
+        - The dataset is structured around 2 categorical variables (objects): :red[*{country_label}*] and :red[*{year_label}*]. Each record corresponds to the result of the survey for a given year and country: we call them *indexers*.
+        - The *target* is represented by the variable :red[*{target_label}*] (float).
         - All other variables (floats) are *features*.
     ''')
     
     with st.expander("Show variables definitions"):
-        st.write('''
-            :red[*Country name*]  
-            Country described by the data of the record.
-        ''')
+        for key, variable in dst.variables.items():
+            st.write(f'''
+                :red[*{variable['label']}*]  
+                {variable['definition']}
+            ''')
 
-        st.write('''
-            :red[*year*]  
-            Year of data recording for the row.
-        ''')
-
-        st.write('''
-            :red[*Life Ladder*]  
-            Happiness level of a country according to the Cantril ladder, a scale between 0 and 10.
-        ''')
-
-        st.write('''
-            :red[*Log GDP per capita*]  
-            Gross Domestic Product (GDP) per capita. This column provides information about the size and performance of the economy.
-        ''')
-
-        st.write('''
-            :red[*Social support*]  
-            Ratio of respondents who answered *"YES"* to the question: *"If you encounter difficulties, do you have relatives or friends you can count on to help you?"*
-        ''')
-
-        st.write('''
-            :red[*Healthy life expectancy at birth*]  
-            Measures the physical and mental health of a country's population, based on data provided by the World Health Organization (WHO).
-        ''')
-
-        st.write('''
-            :red[*Freedom to make life choices*]  
-            Ratio of respondents who answered *"YES"* to the question: *"Are you satisfied or dissatisfied with your freedom of choice/action?"*
-        ''')
-
-        st.write('''
-            :red[*Generosity*]  
-            Ratio of respondents who answered *"YES"* to the question: *"Did you donate money to a charity last month?"*
-        ''')
-
-        st.write('''
-            :red[*Perceptions of corruption*]  
-            Perception by the population of the level of corruption in their country (at both political - institutions - and economic - businesses - levels).
-        ''')
-
-        st.write('''
-            :red[*Positive affect*]  
-            Average of positive or negative responses given in relation to three emotions: laughter, pleasure, and interest.
-        ''')
-
-        st.write('''
-            :red[*Negative affect*]  
-            Average of positive or negative responses given in relation to three emotions: concern, sadness, and anger.
-        ''')
-
-    st.caption("Note that the variable :red[*year*] has been cast to an object to prevent Streamlit from displaying it as a float with thousand separators, knowing that it is not used for time series in our context.")
+    st.caption(f"Note that the variable :red[*{year_label}*] has been cast to an object to prevent Streamlit from displaying it as a float with thousand separators, knowing that it is not used for time series in our context.")
 
     st.subheader("Statistics")
     st.dataframe(whr.describe().drop(index=['count']), use_container_width=True)
@@ -133,33 +82,33 @@ if page == pages[1]:
     st.write('''
         - Number of records:''', len(whr),
         '''
-        - Number of countries:''', whr['Country name'].nunique(),
+        - Number of countries:''', whr[country_label].nunique(),
         '''
-        - Years: from''', int(whr['year'].min()), '''to''', int(whr['year'].max()))
+        - Years: from''', int(whr[year_label].min()), '''to''', int(whr[year_label].max()))
 
     with st.expander("Show records by year and country"):
-        st.bar_chart(whr, x='year', y='Country name')
+        st.bar_chart(whr, x=year_label, y=country_label)
 
         st.caption("We observe that some countries show few records, and some - same or others - have not participated in the study recently. We may need to filter our dataset for modeling purposes.")
-    
+
     st.subheader("Distributions")
-    for col in whr.drop(columns=['Country name', 'year']).columns:
+    for col in [target_label] + features:
         fig = px.histogram(whr, col, marginal='box')
         fig.update_layout(margin={'t': 10, 'b': 10, 'l': 10, 'r': 10})
         fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
         st.plotly_chart(fig, use_container_width=True)
     
-    st.write('''
-        - The *target* variable :red[*Life Ladder*] resembles a normal distribution.
-        - All *features* show some outliers, which are not anomalies. For example, :grey[Haiti] shows a very low :red[*Healthy life expectancy at birth*] due to a natural disaster, while :grey[Venezuela] shows a very sharp fall in its :red[*Log GDP per capita*] following a major crisis of its economy.
+    st.write(f'''
+        - The *target* variable :red[*{target_label}*] resembles a normal distribution.
+        - All *features* show some outliers, which are not anomalies. For example, :grey[Haiti] shows a very low :red[*{dfr.get_label('life')}*] due to a natural disaster, while :grey[Venezuela] shows a very sharp fall in its :red[*{dfr.get_label('gdp')}*] following a major crisis of its economy.
     ''')
 
     st.subheader("Missing values")
-    st.write("We know for sure that *target* (:red[*Life Ladder*]) and *indexers* (:red[*Country name*] and :red[*year*]) show no missing values.")
+    st.write(f"We know for sure that *target* (:red[*{target_label}*]) and *indexers* (:red[*{country_label}*] and :red[*{year_label}*]) show no missing values.")
 
     nans_per_variable_show_len_toggle = st.toggle("Show missing values compared to total records")
 
-    fig = px.bar(whr.drop(columns=['Life Ladder', 'Country name', 'year']).isna().sum())
+    fig = px.bar(whr[features].isna().sum())
     
     fig.update_layout(margin={'t': 10, 'b': 10, 'l': 10, 'r': 10})
     fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
@@ -179,7 +128,7 @@ if page == pages[1]:
 
     st.subheader("Correlations")
     fig = px.imshow(
-        whr.drop(columns=['Country name', 'year']).corr(),
+        whr[[target_label] + features].corr(),
         text_auto='.2f',
         range_color=(-1, 1),
         color_continuous_scale=['#2E9AFF', '#FFFFFF', '#FF4B4B']
@@ -188,12 +137,12 @@ if page == pages[1]:
     fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
     st.plotly_chart(fig, use_container_width=True)
 
-    st.write('''
-        - :red[*Log GDP per capita*], :red[*Social support*] and :red[*Healthy life expectancy at birth*] have a strong positive correlation with :red[*Life Ladder*], suggesting that these factors may be essential to the well-being of individuals.
-        - :red[*Freedom to make life choices*] and :red[*Positive affect*] also show a moderately positive correlation with the target variable.
-        - :red[*Perceptions of corruption*] is moderately negatively correlated with :red[*Life Ladder*], indicating that a high level of corruption perceived can be detrimental to general well-being.
-        - :red[*Generosity*] shows relatively weak correlation scores.
-        - The strongest correlation observed concerns the relationship between :red[*Log GDP per capita*] and :red[*Healthy life expectancy at birth*].
+    st.write(f'''
+        - :red[*{dfr.get_label('gdp')}*], :red[*{dfr.get_label('support')}*] and :red[*{dfr.get_label('life')}*] have a strong positive correlation with :red[*{target_label}*], suggesting that these factors may be essential to the well-being of individuals.
+        - :red[*{dfr.get_label('freedom')}*] and :red[*{dfr.get_label('positivity')}*] also show a moderately positive correlation with the target variable.
+        - :red[*{dfr.get_label('corruption')}*] is moderately negatively correlated with :red[*{target_label}*], indicating that a high level of corruption perceived can be detrimental to general well-being.
+        - :red[*{dfr.get_label('generosity')}*] shows relatively weak correlation scores.
+        - The strongest correlation observed concerns the relationship between :red[*{dfr.get_label('gdp')}*] and :red[*{dfr.get_label('life')}*].
     ''')
 
 if page == pages[2]:
@@ -208,16 +157,16 @@ if page == pages[2]:
         )
 
     with geo_target_col2:
-        geo_target_year = st.select_slider("Select year", sorted(whr['year'].unique()), value=whr['year'].max())
+        geo_target_year = st.select_slider("Select year", sorted(whr[year_label].unique()), value=whr[year_label].max())
     
     fig = px.scatter_geo(
-        whr[whr['year'] == geo_target_year],
+        whr[whr[year_label] == geo_target_year],
         scope=geo_target_scope,
         projection='natural earth',
-        locations='Country name',
+        locations=country_label,
         locationmode='country names',
-        color='Life Ladder',
-        size='Life Ladder',
+        color=target_label,
+        size=target_label,
         color_continuous_scale=['#FF4B4B', '#FFFF00', '#09AB3B']
     )
 
@@ -237,25 +186,25 @@ if page == pages[2]:
     with country_viz_filter_col1:
         country_viz_country = st.selectbox(
             "Choose a country",
-            sorted(whr['Country name'].unique())
+            sorted(whr[country_label].unique())
         )
     
     with country_viz_filter_col2:
         country_viz_variable = st.selectbox(
             "Choose a variable",
-            whr.columns.drop(['Country name', 'year'])
+            whr.columns.drop([country_label, year_label])
         )
 
-    if len(whr[whr['Country name'] == country_viz_country][country_viz_variable].dropna()) > 1:
+    if len(whr[whr[country_label] == country_viz_country][country_viz_variable].dropna()) > 1:
         fig = px.line(
-            whr[whr['Country name'] == country_viz_country],
-            x='year',
+            whr[whr[country_label] == country_viz_country],
+            x=year_label,
             y=country_viz_variable,
             markers=True,
-            labels={"year": "", "value": country_viz_variable})
+            labels={year_label: "", "value": country_viz_variable})
    
         fig.add_hline(
-            y=whr[whr['Country name'] == country_viz_country][country_viz_variable].mean(),
+            y=whr[whr[country_label] == country_viz_country][country_viz_variable].mean(),
             line_color='blue', line_width=1, annotation_text="Mean accross years"
         )
     
@@ -268,7 +217,7 @@ if page == pages[2]:
         country_viz_metric_col1, country_viz_metric_col2, country_viz_metric_col3 = st.columns(3, gap='large')
 
         with country_viz_metric_col1:
-            country_viz_metric1_list = whr[whr['Country name'] == country_viz_country][country_viz_variable].dropna().tolist()
+            country_viz_metric1_list = whr[whr[country_label] == country_viz_country][country_viz_variable].dropna().tolist()
 
             st.metric("Last record",
                 round(country_viz_metric1_list[-1], 2),
@@ -277,8 +226,8 @@ if page == pages[2]:
             )
 
         with country_viz_metric_col2:
-            country_viz_metric2 = whr[whr['Country name'] == country_viz_country][country_viz_variable].mean()
-            country_viz_metric2_delta = whr[whr['Country name'] != country_viz_country][country_viz_variable].mean()
+            country_viz_metric2 = whr[whr[country_label] == country_viz_country][country_viz_variable].mean()
+            country_viz_metric2_delta = whr[whr[country_label] != country_viz_country][country_viz_variable].mean()
 
             st.metric("Mean",
                 round(country_viz_metric2, 2),
@@ -287,31 +236,31 @@ if page == pages[2]:
             )
 
         with country_viz_metric_col3:
-            if country_viz_country in whr[whr['year'] == whr['year'].max()]['Country name'].values:
-                country_viz_metric3_sorted = whr[whr['year'] == whr['year'].max()].sort_values(country_viz_variable, ascending=False).reset_index()
+            if country_viz_country in whr[whr[year_label] == whr[year_label].max()][country_label].values:
+                country_viz_metric3_sorted = whr[whr[year_label] == whr[year_label].max()].sort_values(country_viz_variable, ascending=False).reset_index()
 
-                country_viz_metric3 = country_viz_metric3_sorted[country_viz_metric3_sorted['Country name'] == country_viz_country].index[0] + 1
+                country_viz_metric3 = country_viz_metric3_sorted[country_viz_metric3_sorted[country_label] == country_viz_country].index[0] + 1
 
-                st.metric("Rank for " + whr['year'].max(),
+                st.metric("Rank for " + whr[year_label].max(),
                     country_viz_metric3,
                     help="out of " + str(len(country_viz_metric3_sorted)) + " countries"
                 )
             
             else:
-                st.error("No record for " + country_viz_country + " in " + whr['year'].max() + ".", icon='❌')
+                st.error("No record for " + country_viz_country + " in " + whr[year_label].max() + ".", icon='❌')
     
     else:
         st.error("Not enough records available.", icon='❌')
 
 if page == pages[3]:
     st.subheader("Filtering")
-    st.write("As seen previously, the dataset is specific as it is structured around two indexing variables: the :red[*Country name*] and the :red[*year*].")
+    st.write(f"As seen previously, the dataset is specific as it is structured around two indexing variables: the :red[*{dfr.get_label('country')}*] and the :red[*{dfr.get_label('year')}*].")
     
     st.write("Consequently, the holdout part of the upcoming modeling process will not be conducted randomly: the test subset will consist of the most recent records.")
     
     st.write("We need to filter the dataset to keep a sufficiently representative amount of countries with records in a very restricted range of most recent year.")
 
-    max_year_per_country = whr.groupby('Country name').agg({'year': 'max'})
+    max_year_per_country = whr.groupby(country_label).agg({year_label: 'max'})
 
     st.dataframe(
         max_year_per_country.value_counts().sort_index(ascending=False).head(),
@@ -320,23 +269,23 @@ if page == pages[3]:
 
     st.write("We can keep countries with records for", 2022, "and", 2021, ":")
 
-    countries_to_keep = max_year_per_country[max_year_per_country['year'].isin(['2022', '2021'])]
-    whr_pp = whr[whr['Country name'].isin(countries_to_keep.index)].reset_index(drop=True)
+    countries_to_keep = max_year_per_country[max_year_per_country[year_label].isin(['2022', '2021'])]
+    whr_pp = whr[whr[country_label].isin(countries_to_keep.index)].reset_index(drop=True)
 
     st.code(
         '''
         # original dataframe is named 'whr'
-        max_year_per_country = whr.groupby('Country name').agg({'year': 'max'})
+        max_year_per_country = whr.groupby('Country').agg({'Year': 'max'})
         countries_to_keep = max_year_per_country[max_year_per_country['year'].isin(['2022', '2021'])]
         # new dataframe for preprocessing
-        whr_pp = whr[whr['Country name'].isin(countries_to_keep.index)].reset_index(drop=True)
+        whr_pp = whr[whr['Country'].isin(countries_to_keep.index)].reset_index(drop=True)
         ''',
         language='python'
     )
 
     st.write(
         "We kept", len(whr_pp), "records for", len(countries_to_keep), "countries,",
-        "compared to", len(whr), "records for", whr['Country name'].nunique(), "countries before filtering."
+        "compared to", len(whr), "records for", whr[country_label].nunique(), "countries before filtering."
     )
 
     st.subheader("Handling missing values")
@@ -347,7 +296,7 @@ if page == pages[3]:
 
     st.write("However, we observe very low variance and standard deviation in our dataset for each country, which significantly mitigates the risk of data leakage, as shown below:")
 
-    var_countries = whr_pp.drop(columns = ['year', 'Life Ladder']).groupby('Country name').var()
+    var_countries = whr_pp.drop(columns=[year_label, target_label]).groupby(country_label).var()
     st.dataframe(
         var_countries.describe().loc[['mean', 'min', '25%', '50%', '75%', 'max']].round(2).transpose(),
         column_config={
@@ -359,7 +308,7 @@ if page == pages[3]:
         use_container_width=True
     )
     
-    std_countries = whr_pp.drop(columns = ['year', 'Life Ladder']).groupby('Country name').std()
+    std_countries = whr_pp.drop(columns=[year_label, target_label]).groupby(country_label).std()
     st.dataframe(
         std_countries.describe().loc[['mean', 'min', '25%', '50%', '75%', 'max']].round(2).transpose(),
         column_config={
@@ -375,8 +324,8 @@ if page == pages[3]:
 
     st.code(
         '''
-        for country in whr_pp['Country name'].unique():
-            country_data = whr_pp[whr_pp['Country name'] == country]
+        for country in whr_pp['Country'].unique():
+            country_data = whr_pp[whr_pp['Country'] == country]
             country_data = country_data.interpolate(method='linear', limit_direction='both')
             whr_pp.update(country_data)
         ''',
@@ -385,8 +334,8 @@ if page == pages[3]:
 
     whrpp_nans_before = whr_pp.isna().sum().sum()
 
-    for country in whr_pp['Country name'].unique():
-        country_data = whr_pp[whr_pp['Country name'] == country]
+    for country in whr_pp[country_label].unique():
+        country_data = whr_pp[whr_pp[country_label] == country]
         country_data = country_data.interpolate(method='linear', limit_direction='both')
         whr_pp.update(country_data)
     
@@ -394,18 +343,18 @@ if page == pages[3]:
 
     st.code(
         '''
-        for col in whr_pp.drop(columns=['Country name', 'year']).columns:
-            whr_pp[col] = whr_pp.groupby(['year'])[col].transform(lambda x: x.fillna(x.mean()))
+        for col in whr_pp.drop(columns=['Country', 'Year']).columns:
+            whr_pp[col] = whr_pp.groupby(['Year'])[col].transform(lambda x: x.fillna(x.mean()))
         ''',
         language='python'
     )
 
-    for col in whr_pp.drop(columns=['Country name', 'year']).columns:
-        whr_pp[col] = whr_pp.groupby(['year'])[col].transform(lambda x: x.fillna(x.mean()))
+    for col in whr_pp.drop(columns=[country_label, year_label]).columns:
+        whr_pp[col] = whr_pp.groupby([year_label])[col].transform(lambda x: x.fillna(x.mean()))
 
     st.subheader("Feature scaling")
 
-    st.write("All features are numerical and at the same scale, except for :red[*Log GDP per capita*] and :red[*Healthy life expectancy at birth*].")
+    st.write(f"All features are numerical and at the same scale, except for :red[*{dfr.get_label('gdp')}*] and :red[*{dfr.get_label('life')}*].")
 
     st.write("We may need to use standardization before modeling.")
 
@@ -415,7 +364,7 @@ if page == pages[3]:
 if page == pages[4]:
     st.subheader("Classification")
 
-    st.write("The machine learning problem at hand involves predicting a continuous variable, the :red[*Life Ladder*], relying on 8 independent numerical variables as *features*.")
+    st.write(f"The machine learning problem at hand involves predicting a continuous variable, the :red[*{target_label}*], relying on 8 independent numerical variables as *features*.")
 
     st.write("> *Therefore, this project pertains to an issue of linear regression.*")
 
@@ -475,15 +424,15 @@ if page == pages[4]:
     else:
         whr_pp = st.session_state.whr_pp
 
-        whr_pp_last_years = whr_pp.groupby("Country name")['year'].max()
+        whr_pp_last_years = whr_pp.groupby(country_label)[year_label].max()
 
-        whr_pp_test = whr_pp[whr_pp.apply(lambda x: x['year'] == whr_pp_last_years[x['Country name']], axis=1)]
+        whr_pp_test = whr_pp[whr_pp.apply(lambda x: x[year_label] == whr_pp_last_years[x[country_label]], axis=1)]
         whr_pp_train = whr_pp.drop(whr_pp_test.index)
 
         modeling_features_options = st.multiselect(
             "Select features",
-            whr_pp.drop(columns=['Country name', 'year', 'Life Ladder']).columns.tolist(),
-            whr_pp.drop(columns=['Country name', 'year', 'Life Ladder']).columns.tolist()
+            features,
+            features
         )
 
         modeling_models = {
@@ -524,8 +473,8 @@ if page == pages[4]:
         else:
             X_train = whr_pp_train[modeling_features_options]
             X_test = whr_pp_test[modeling_features_options]
-            y_train = whr_pp_train['Life Ladder']
-            y_test = whr_pp_test['Life Ladder']
+            y_train = whr_pp_train[target_label]
+            y_test = whr_pp_test[target_label]
 
             sc = StandardScaler()
             X_train.loc[:, modeling_features_options] = sc.fit_transform(X_train[modeling_features_options])
