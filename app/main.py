@@ -298,10 +298,10 @@ if page == pages[2]:
                 )
             
             else:
-                st.error("No record for " + country_viz_country + " in " + whr['year'].max() + ".")
+                st.error("No record for " + country_viz_country + " in " + whr['year'].max() + ".", icon='❌')
     
     else:
-        st.error("Not enough records available.")
+        st.error("Not enough records available.", icon='❌')
 
 if page == pages[3]:
     st.subheader("Filtering")
@@ -470,7 +470,7 @@ if page == pages[4]:
     st.subheader("Process")
 
     if st.session_state.whr_pp is None:
-        st.error("You need to run *Preprocessing* step before processing modeling.")
+        st.error("You need to run *Preprocessing* step before processing modeling.", icon='❌')
     
     else:
         whr_pp = st.session_state.whr_pp
@@ -519,7 +519,7 @@ if page == pages[4]:
         )
 
         if not modeling_features_options:
-            st.error("At least one feature is necessary.")
+            st.error("At least one feature is necessary.", icon='❌')
         
         else:
             X_train = whr_pp_train[modeling_features_options]
@@ -635,4 +635,4 @@ if page == pages[4]:
 
                 st.dataframe(gs_metrics, hide_index=True, use_container_width=True)
 
-            st.write("> *No other model shows a better compromise between performance and robustness than :grey[Linear Regression] after Grid Search optimization: either the model suffers from a great loss of performance, or we are not able to reduce overfitting enough.*")
+            st.write("> *No other model shows a better compromise between performance and robustness than :grey[Linear Regression] after :grey[Grid Search] optimization: either the model suffers from a great loss of performance, or we are not able to reduce overfitting enough.*")
