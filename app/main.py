@@ -251,10 +251,10 @@ if page == pages[2]:
                 )
             
             else:
-                st.error("No record for " + country_viz_country + " in " + whr[year_label].max() + ".", icon='❌')
+                fmt.error("No record for " + country_viz_country + " in " + whr[year_label].max() + ".")
     
     else:
-        st.error("Not enough records available.", icon='❌')
+        fmt.error("Not enough records available.")
 
 if page == pages[3]:
     st.subheader("Filtering")
@@ -423,7 +423,7 @@ if page == pages[4]:
     st.subheader("Process")
 
     if st.session_state.whr_pp is None:
-        st.error("You need to run *Preprocessing* step before processing modeling.", icon='❌')
+        fmt.error("You need to run *Preprocessing* step before processing modeling.")
     
     else:
         whr_pp = st.session_state.whr_pp
@@ -472,7 +472,7 @@ if page == pages[4]:
         )
 
         if not modeling_features_options:
-            st.error("At least one feature is necessary.", icon='❌')
+            fmt.error("At least one feature is necessary.")
         
         else:
             X_train = whr_pp_train[modeling_features_options]
@@ -535,7 +535,7 @@ if page == pages[4]:
             st.write(fmt.cite(f"In order to find the best compromise between performance and robustness, we'll try to optimize each of these models with {fmt.em("Grid Search")} to determine the best hyperparameters."))
 
             if st.session_state.gs_metrics is None:
-                st.warning("Grid Search optimization with many models and parameters can take a very long time, proceed with caution.", icon='⚠️')
+                fmt.warning("Grid Search optimization with many models and parameters can take a very long time, proceed with caution.")
 
                 gs_proceed = st.button("Proceed to Grid Search optimization", type='primary')
             
