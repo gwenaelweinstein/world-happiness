@@ -1,17 +1,11 @@
 import dataframes as dfr
 import datasets as dst
 import formats as fmt
+import machine_learning as ml
+import ml_context as mlc
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_absolute_error, mean_squared_error
-from sklearn.model_selection import GridSearchCV
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.preprocessing import StandardScaler
-from sklearn.svm import SVR
-from sklearn.tree import DecisionTreeRegressor
 
 whr = dfr.get_df('2023')
 
@@ -71,10 +65,10 @@ if page == pages[1]:
     ''')
     
     with st.expander("Show variables definitions"):
-        for key, variable in dst.variables.items():
+        for key, value in dst.variables.items():
             st.write(f'''
                 {fmt.var(key)}  
-                {variable['definition']}
+                {value['definition']}
             ''')
 
     st.caption(f"Note that the variable {fmt.var('year')} has been cast to an object to prevent Streamlit from displaying it as a float with thousand separators, knowing that it is not used for time series in our context.")
@@ -373,21 +367,12 @@ if page == pages[4]:
     st.write(fmt.cite("Therefore, this project pertains to an issue of linear regression."))
 
     st.subheader("Performance metrics")
-    
-    st.markdown(f'''
-        {fmt.em("R\u00b2")}  
-        To estimate the contribution of each independent variable to explaining the value of the target variable, we must ensure that the model is able to explain a sufficient portion of the variance. We can do this with the coefficient of determination (R-Squared).
-    ''')
 
-    st.markdown(f'''
-        {fmt.em("MAE")}  
-        The coefficient of determination alone is not sufficient, as it does not take into account the magnitude of errors. Mean Absolute Error gives a first overview easy to interpret, with the advantage of being less sensitive to outliers.
-    ''')
-
-    st.markdown(f'''
-        {fmt.em("RMSE")}  
-        Mean Squared Error and Root Mean Squared Error are more sensitive to outliers than MAE, allowing to detect the potential presence of large discrepancies in predictions. RMSE is easier to interpret compared to the target variable and MAE, as it is on the same scale.
-    ''')
+    for key, value in mlc.metrics.items():
+        st.markdown(f'''
+            {fmt.em(key)}  
+            {value['definition']}
+        ''')
 
     st.caption("If the accuracy of our predictions is a good performance indicator for our model, the focus will mainly be on interpreting these results.")
 
@@ -395,30 +380,11 @@ if page == pages[4]:
 
     st.write("In order to determine the most suitable model for our problem, we compared the following models:")
 
-    st.markdown(f'''
-        {fmt.em("Linear Regression")}  
-        Linear regression is relevant for our project, as it is simple to interpret and performs well on linear relationships between target and explanatory variables.
-    ''')
-
-    st.markdown(f'''
-        {fmt.em("Decision Tree")}  
-        This model is also quite straightforward to interpret. Moreover, the ability to visualize the path leading to the prediction can particularly highlight the role played by each explanatory variable.
-    ''')
-
-    st.markdown(f'''
-        {fmt.em("Random Forest")}  
-        Random forests are theoretically more generalizable than decision trees, and thus less prone to overfitting. With this model, we also seek to capture potential complex relationships between variables beyond what linear regression allows.
-    ''')
-
-    st.markdown(f'''
-        {fmt.em("Support Vector Regression (SVR)")}  
-        Similar to random forests, SVR is less prone to overfitting and can uncover complex, nonlinear relationships. It also performs well with small data volumes like ours.
-    ''')
-
-    st.markdown(f'''
-        {fmt.em("K-Nearest Neighbors (KNN)")}  
-        Similar to linear regression, this model is recognized for its simplicity and effectiveness. As the name suggests, it relies on the nearest samples to make predictions. Our dataset seems well suited for this model, as it contains country-level data over multiple years.
-    ''')
+    for key, value in mlc.models.items():
+        st.markdown(f'''
+            {fmt.em(key)}  
+            {value['definition']}
+        ''')
 
     st.subheader("Process")
 
@@ -428,85 +394,43 @@ if page == pages[4]:
     else:
         whr_pp = st.session_state.whr_pp
 
-        whr_pp_last_years = whr_pp.groupby(country_label)[year_label].max()
-
-        whr_pp_test = whr_pp[whr_pp.apply(lambda x: x[year_label] == whr_pp_last_years[x[country_label]], axis=1)]
-        whr_pp_train = whr_pp.drop(whr_pp_test.index)
-
         modeling_features_options = st.multiselect(
             "Select features",
             features,
             features
         )
 
-        modeling_models = {
-            'Linear Regression': (LinearRegression(), None),
-            'Decision Tree': (DecisionTreeRegressor(), {
-                'max_depth': [2, 4, 6],
-                'min_samples_split': [2, 5, 10],
-                'min_samples_leaf': [1, 5],
-                'max_features': [1.0, 'sqrt', 'log2']
-            }),
-            'Random Forest': (RandomForestRegressor(), {
-                'n_estimators': [1, 10, 100],
-                'max_depth': [2, 4, 6],
-                'min_samples_split': [2, 5, 10],
-                'min_samples_leaf': [1, 5],
-                'max_features': [1.0, 'sqrt', 'log2']
-            }),
-            'SVR': (SVR(), {
-                'kernel': ['rbf', 'linear', 'poly', 'sigmoid'],
-                'C': [0.1, 1.0, 10.0],
-                'epsilon': [0.1, 0.01, 0.001]
-            }),
-            'KNN': (KNeighborsRegressor(), {
-                'n_neighbors': [3, 5, 7, 10],
-                'weights': ['uniform', 'distance'],
-                'metric': ['euclidean', 'manhattan']
-            })
-        }
-
         modeling_model_select = st.selectbox(
             "Choose a model",
-            modeling_models.keys()
+            mlc.models.keys()
         )
 
         if not modeling_features_options:
             fmt.error("At least one feature is necessary.")
         
         else:
-            X_train = whr_pp_train[modeling_features_options]
-            X_test = whr_pp_test[modeling_features_options]
-            y_train = whr_pp_train[target_label]
-            y_test = whr_pp_test[target_label]
+            modeling_data = ml.prepare(whr_pp, modeling_features_options)
 
-            sc = StandardScaler()
-            X_train.loc[:, modeling_features_options] = sc.fit_transform(X_train[modeling_features_options])
-            X_test.loc[:, modeling_features_options] = sc.transform(X_test[modeling_features_options])
+            modeling_model = ml.execute(modeling_model_select, modeling_data)
 
-            modeling_model = modeling_models[modeling_model_select][0]
+            modeling_model_metrics = ml.metrics(modeling_model, modeling_data)
 
-            modeling_model_fit = modeling_model.fit(X_train, y_train)
+            R2_train = modeling_model_metrics[0][0]
+            R2_test = modeling_model_metrics[0][1]
 
-            y_pred_train = modeling_model_fit.predict(X_train)
-            y_pred_test = modeling_model_fit.predict(X_test)
+            MAE_train = modeling_model_metrics[1][0]
+            MAE_test = modeling_model_metrics[1][1]
 
-            R2_train = modeling_model_fit.score(X_train, y_train)
-            R2_test = modeling_model_fit.score(X_test, y_test)
-
-            MAE_train = mean_absolute_error(y_train, y_pred_train)
-            MAE_test = mean_absolute_error(y_test, y_pred_test)
-
-            RMSE_train = mean_squared_error(y_train, y_pred_train, squared = False)
-            RMSE_test = mean_squared_error(y_test, y_pred_test, squared = False)
+            RMSE_train = modeling_model_metrics[2][0]
+            RMSE_test = modeling_model_metrics[2][1]
 
             modeling_metrics_metric_col1, modeling_metrics_metric_col2, modeling_metrics_metric_col3 = st.columns(3, gap='large')
 
             with modeling_metrics_metric_col1:
-                st.metric("R2 Test",
+                st.metric("R\u00b2 Test",
                     round(R2_test, 2),
                     delta=round(R2_test - R2_train, 2),
-                    help="R2 Train = " + str(round(R2_train, 2))
+                    help="R\u00b2 Train = " + str(round(R2_train, 2))
                 )
 
             with modeling_metrics_metric_col2:
@@ -540,38 +464,22 @@ if page == pages[4]:
                 gs_proceed = st.button("Proceed to Grid Search optimization", type='primary')
             
                 if gs_proceed:
-                    gs_proceed.disabled = True
-                    
                     gs_metrics = pd.DataFrame(columns=['Model', 'Set', 'R2', 'MAE', 'RMSE'])
                 
-                    for gs_item in modeling_models:
-                        if modeling_models[gs_item][1]:
-                            param_grid = modeling_models[gs_item][1]
-                        
-                            gs = GridSearchCV(
-                                estimator = modeling_models[gs_item][0],
-                                param_grid = param_grid, cv = 5,
-                                scoring = 'r2'
-                            )
-                        
-                            gs.fit(X_train, y_train)
+                    for gs_item in mlc.models.keys():
+                        gs_model = ml.execute(gs_item, modeling_data, gridsearch=True)
 
-                            gs_model = gs.best_estimator_
+                        gs_model_metrics = ml.metrics(gs_model, modeling_data)
 
-                        else:
-                            gs_model = modeling_models[gs_item][0].fit(X_train, y_train)
+                        gs_R2_train = gs_model_metrics[0][0]
+                        gs_R2_test = gs_model_metrics[0][1]
+
+                        gs_MAE_train = gs_model_metrics[1][0]
+                        gs_MAE_test = gs_model_metrics[1][1]
+
+                        gs_RMSE_train = gs_model_metrics[2][0]
+                        gs_RMSE_test = gs_model_metrics[2][1]
                     
-                        gs_y_pred_train = gs_model.predict(X_train)
-                        gs_y_pred_test = gs_model.predict(X_test)
-
-                        gs_R2_train = gs_model.score(X_train, y_train)
-                        gs_R2_test = gs_model.score(X_test, y_test)
-
-                        gs_MAE_train = mean_absolute_error(y_train, gs_y_pred_train)
-                        gs_MAE_test = mean_absolute_error(y_test, gs_y_pred_test)
-
-                        gs_RMSE_train = mean_squared_error(y_train, gs_y_pred_train, squared = False)
-                        gs_RMSE_test = mean_squared_error(y_test, gs_y_pred_test, squared = False)
                 
                         gs_metrics.loc[len(gs_metrics.index)] = [
                             gs_item,
