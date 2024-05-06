@@ -1,5 +1,6 @@
 import dataframes as dfr
 import ml_context as mlc
+import streamlit as st
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error
@@ -32,9 +33,11 @@ def prepare(df, features):
 
     return X_train, X_test, y_train, y_test
 
+@st.cache_resource
 def execute(model, data, gridsearch=False):
     X_train, X_test, y_train, y_test = data
 
+    # Get model
     match model:
         case "Linear Regression":
             trigger = LinearRegression()
@@ -47,6 +50,7 @@ def execute(model, data, gridsearch=False):
         case "K-Nearest Neighbors (KNN)":
             trigger = KNeighborsRegressor()
 
+    # Optimize model
     if gridsearch:
         if mlc.models[model]['gridsearch']:
             gs = GridSearchCV(
@@ -68,15 +72,19 @@ def execute(model, data, gridsearch=False):
 def metrics(model, data):
     X_train, X_test, y_train, y_test = data
     
+    # Predict
     y_pred_train = model.predict(X_train)
     y_pred_test = model.predict(X_test)
 
+    # Coefficient of determination
     R2_train = model.score(X_train, y_train)
     R2_test = model.score(X_test, y_test)
 
+    # Mean absolute error
     MAE_train = mean_absolute_error(y_train, y_pred_train)
     MAE_test = mean_absolute_error(y_test, y_pred_test)
 
+    # Root mean squared error
     RMSE_train = mean_squared_error(y_train, y_pred_train, squared = False)
     RMSE_test = mean_squared_error(y_test, y_pred_test, squared = False)
 

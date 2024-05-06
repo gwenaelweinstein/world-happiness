@@ -17,9 +17,6 @@ features = whr.drop(columns=[country_label, year_label, target_label]).columns.t
 if 'whr_pp' not in st.session_state:
     st.session_state.whr_pp = None
 
-if 'gs_metrics' not in st.session_state:
-    st.session_state.gs_metrics = None
-
 st.title("World Happiness on Earth")
 
 pages = [
@@ -415,38 +412,33 @@ if page == pages[4]:
 
             modeling_model_metrics = ml.metrics(modeling_model, modeling_data)
 
-            R2_train = modeling_model_metrics[0][0]
-            R2_test = modeling_model_metrics[0][1]
-
-            MAE_train = modeling_model_metrics[1][0]
-            MAE_test = modeling_model_metrics[1][1]
-
-            RMSE_train = modeling_model_metrics[2][0]
-            RMSE_test = modeling_model_metrics[2][1]
+            R2 = modeling_model_metrics[0]
+            MAE = modeling_model_metrics[1]
+            RMSE = modeling_model_metrics[2]
 
             modeling_metrics_metric_col1, modeling_metrics_metric_col2, modeling_metrics_metric_col3 = st.columns(3, gap='large')
 
             with modeling_metrics_metric_col1:
                 st.metric("R\u00b2 Test",
-                    round(R2_test, 2),
-                    delta=round(R2_test - R2_train, 2),
-                    help="R\u00b2 Train = " + str(round(R2_train, 2))
+                    round(R2[1], 2),
+                    delta=round(R2[1] - R2[0], 2),
+                    help="R\u00b2 Train = " + str(round(R2[0], 2))
                 )
 
             with modeling_metrics_metric_col2:
                 st.metric("MAE Test",
-                    round(MAE_test, 2),
-                    delta=round(MAE_test - MAE_train, 2),
+                    round(MAE[1], 2),
+                    delta=round(MAE[1] - MAE[0], 2),
                     delta_color='inverse',
-                    help="MAE Train = " + str(round(MAE_train, 2))
+                    help="MAE Train = " + str(round(MAE[0], 2))
                 )
 
             with modeling_metrics_metric_col3:
                 st.metric("RMSE Test",
-                    round(RMSE_test, 2),
-                    delta=round(RMSE_test - RMSE_train, 2),
+                    round(RMSE[1], 2),
+                    delta=round(RMSE[1] - RMSE[0], 2),
                     delta_color='inverse',
-                    help="RMSE Train = " + str(round(RMSE_train, 2))
+                    help="RMSE Train = " + str(round(RMSE[0], 2))
                 )
 
             st.caption("Delta in these metrics show how Test results behave compared to Train results.")
@@ -458,50 +450,40 @@ if page == pages[4]:
 
             st.write(fmt.cite(f"In order to find the best compromise between performance and robustness, we'll try to optimize each of these models with {fmt.em("Grid Search")} to determine the best hyperparameters."))
 
-            if st.session_state.gs_metrics is None:
-                fmt.warning("Grid Search optimization with many models and parameters can take a very long time, proceed with caution.")
+            fmt.warning("Grid Search optimization with many models and parameters can take a very long time, proceed with caution.")
 
-                gs_proceed = st.button("Proceed to Grid Search optimization", type='primary')
+            gs_proceed = st.button("Proceed to Grid Search optimization", type='primary')
             
-                if gs_proceed:
-                    gs_metrics = pd.DataFrame(columns=['Model', 'Set', 'R2', 'MAE', 'RMSE'])
+            if gs_proceed:
+                gs_metrics = pd.DataFrame(columns=['Model', 'Set', 'R2', 'MAE', 'RMSE'])
                 
-                    for gs_item in mlc.models.keys():
-                        gs_model = ml.execute(gs_item, modeling_data, gridsearch=True)
+                for gs_item in mlc.models.keys():
+                    gs_data = ml.prepare(whr_pp, features)
 
-                        gs_model_metrics = ml.metrics(gs_model, modeling_data)
+                    gs_model = ml.execute(gs_item, gs_data, gridsearch=True)
 
-                        gs_R2_train = gs_model_metrics[0][0]
-                        gs_R2_test = gs_model_metrics[0][1]
+                    gs_model_metrics = ml.metrics(gs_model, gs_data)
 
-                        gs_MAE_train = gs_model_metrics[1][0]
-                        gs_MAE_test = gs_model_metrics[1][1]
+                    gs_R2 = gs_model_metrics[0]
+                    gs_MAE = gs_model_metrics[1]
+                    gs_RMSE = gs_model_metrics[2]
 
-                        gs_RMSE_train = gs_model_metrics[2][0]
-                        gs_RMSE_test = gs_model_metrics[2][1]
+                    gs_metrics.loc[len(gs_metrics.index)] = [
+                        gs_item,
+                        "Train",
+                        gs_R2[0],
+                        gs_MAE[0],
+                        gs_RMSE[0]
+                    ]
+
+                    gs_metrics.loc[len(gs_metrics.index)] = [
+                        gs_item,
+                        "Test",
+                        gs_R2[1],
+                        gs_MAE[1],
+                        gs_RMSE[1]
+                    ]
                     
-                
-                        gs_metrics.loc[len(gs_metrics.index)] = [
-                            gs_item,
-                            "Train",
-                            gs_R2_train,
-                            gs_MAE_train,
-                            gs_RMSE_train
-                        ]
-
-                        gs_metrics.loc[len(gs_metrics.index)] = [
-                            gs_item,
-                            "Test",
-                            gs_R2_test,
-                            gs_MAE_test,
-                            gs_RMSE_test
-                        ]
-                    
-                    st.dataframe(gs_metrics, hide_index=True, use_container_width=True)
-
-                    st.session_state.gs_metrics = gs_metrics
-
-            else:
-                st.dataframe(st.session_state.gs_metrics, hide_index=True, use_container_width=True)
+                st.dataframe(gs_metrics, hide_index=True, use_container_width=True)
             
             st.write(fmt.cite(f"No other model shows a better compromise between performance and robustness than {fmt.em("Linear Regression")} after {fmt.em("Grid Search")} optimization: either the model suffers from a great loss of performance, or we are not able to reduce overfitting enough."))
