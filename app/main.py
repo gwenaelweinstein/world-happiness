@@ -2,21 +2,33 @@ import dataframes as dfr
 import datasets as dst
 import formats as fmt
 import machine_learning as ml
+import matplotlib.pyplot as plt
 import ml_context as mlc
 import pandas as pd
 import plotly.express as px
+import shap
 import streamlit as st
 
+# Browser tab display
+st.set_page_config(
+    page_title="World Happiness",
+    page_icon="🌈"
+)
+
+# Get main dataframe
 whr = dfr.get_df('2023')
 
+# Get variables
 country_label = dfr.get_label('country')
 year_label = dfr.get_label('year')
 target_label = dfr.get_label('target')
 features = whr.drop(columns=[country_label, year_label, target_label]).columns.tolist()
 
+# Init preprocessed dataframe
 if 'whr_pp' not in st.session_state:
     st.session_state.whr_pp = None
 
+# App structure
 st.title("World Happiness on Earth")
 
 pages = [
@@ -32,6 +44,9 @@ page = st.sidebar.radio("", options=pages)
 if page != pages[0]:
     st.header(page)
 
+#####################################
+#          0. INTRODUCTION          #
+#####################################
 if page == pages[0]:
     st.write("An analysis of well-being on Earth based on data collected by the [World Happiness Report](https://worldhappiness.report/), whose survey aims to estimate the level of happiness by country based on socio-economic measures around health, education, corruption, economy, life expectancy, etc.")
 
@@ -51,6 +66,9 @@ if page == pages[0]:
 
     st.caption("The current project and app have been done with data from the [2023 report](https://worldhappiness.report/ed/2023/). We may be able to test our process with data from 2024 at the end of this work.")
 
+#########################################
+#          1. DATA EXPLORATION          #
+#########################################
 if page == pages[1]:
     st.subheader("Show data")
     st.dataframe(whr)
@@ -140,6 +158,9 @@ if page == pages[1]:
         - The strongest correlation observed concerns the relationship between {fmt.var('gdp')} and {fmt.var('life')}.
     ''')
 
+###########################################
+#          2. DATA VISUALIZATION          #
+###########################################
 if page == pages[2]:
     st.subheader("Global preview")
     geo_target_col1, geo_target_col2 = st.columns(2, gap='large')
@@ -247,6 +268,9 @@ if page == pages[2]:
     else:
         fmt.error("Not enough records available.")
 
+######################################
+#          3. PREPROCESSING          #
+######################################
 if page == pages[3]:
     st.subheader("Filtering")
     st.write(f"As seen previously, the dataset is specific as it is structured around two {fmt.em("indexing variables")}: the {fmt.var('country')} and the {fmt.var('year')}.")
@@ -356,6 +380,9 @@ if page == pages[3]:
     if st.session_state.whr_pp is None:
         st.session_state.whr_pp = whr_pp
 
+#################################
+#          4. MODELING          #
+#################################
 if page == pages[4]:
     st.subheader("Classification")
 
@@ -386,7 +413,7 @@ if page == pages[4]:
     st.subheader("Process")
 
     if st.session_state.whr_pp is None:
-        fmt.error("You need to run *Preprocessing* step before processing modeling.")
+        fmt.error("You need to run Preprocessing step before processing Modeling.")
     
     else:
         whr_pp = st.session_state.whr_pp
