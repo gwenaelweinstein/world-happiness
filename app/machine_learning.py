@@ -10,6 +10,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVR
 from sklearn.tree import DecisionTreeRegressor
 
+# Prepare data for modeling
 def prepare(df, features):
     country_label = dfr.get_label('country')
     year_label = dfr.get_label('year')
@@ -33,6 +34,7 @@ def prepare(df, features):
 
     return X_train, X_test, y_train, y_test
 
+# Execute modeling
 @st.cache_resource
 def execute(model, data, gridsearch=False):
     X_train, X_test, y_train, y_test = data
@@ -69,6 +71,7 @@ def execute(model, data, gridsearch=False):
     else:
         return trigger.fit(X_train, y_train)
 
+# Get performance metrics
 def metrics(model, data):
     X_train, X_test, y_train, y_test = data
     
