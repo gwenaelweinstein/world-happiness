@@ -7,7 +7,11 @@ def var(var):
 
 # Render style for emphasis
 def em(txt):
-    return ":grey[***" + txt + "***]"
+    return ":blue[***" + txt + "***]"
+
+# Render style for number
+def nmb(txt):
+    return ":green[***" + txt + "***]"
 
 # Render style for quote
 def cite(txt):

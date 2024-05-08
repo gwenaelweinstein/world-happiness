@@ -2,11 +2,9 @@ import dataframes as dfr
 import datasets as dst
 import formats as fmt
 import machine_learning as ml
-import matplotlib.pyplot as plt
 import ml_context as mlc
 import pandas as pd
 import plotly.express as px
-import shap
 import streamlit as st
 
 # Browser tab display
@@ -58,13 +56,13 @@ if page == pages[0]:
     st.subheader("Context and goal")
     st.write(f"The {fmt.em("World Happiness Report")} is a publication of the [Sustainable Development Solutions Network](https://www.unsdsn.org/) for the United Nations, and powered by [Gallup World Poll](https://www.gallup.com/178667/gallup-world-poll-work.aspx) data. Its goal is to give more importance to happiness and well-being as criteria for assessing government policies.")
 
-    st.write(f"{fmt.em("Gallup World Poll")} ratings are based on the {fmt.em("Cantril Ladder")}, where respondents are asked to evaluate their own life by giving a grade between 0 (the worst life they can think of) and 10 (the best one). The {fmt.em("World Happiness Report")} adds 6 socio-economic measures and 2 daily feelings.")
+    st.write(f"{fmt.em("Gallup World Poll")} ratings are based on the {fmt.em("Cantril Ladder")}, where respondents are asked to evaluate their own life by giving a grade between {fmt.nmb("0")} (the worst life they can think of) and {fmt.nmb("10")} (the best one). The {fmt.em("World Happiness Report")} adds {fmt.nmb("6")} socio-economic measures and {fmt.nmb("2")} daily feelings.")
 
-    st.write("A report is published every year since 2012, with data from 2005 to the previous year of the publication.")
+    st.write(f"A report is published every year since {fmt.nmb("2012")}, with data from {fmt.nmb("2005")} to the previous year of the publication.")
 
     st.write(fmt.cite("With this project, we want to present this data using interactive visualizations and determine combinations of factors that explain why some countries are better ranked than others."))
 
-    st.caption("The current project and app have been done with data from the [2023 report](https://worldhappiness.report/ed/2023/). We may be able to test our process with data from 2024 at the end of this work.")
+    st.caption(f"The current project and app have been done with data from the [2023 report](https://worldhappiness.report/ed/2023/). We may be able to test our process with data from {fmt.nmb("2024")} at the end of this work.")
 
 #########################################
 #          1. DATA EXPLORATION          #
@@ -74,10 +72,10 @@ if page == pages[1]:
     st.dataframe(whr)
 
     st.write(f'''
-        - The dataset is structured around 2 categorical variables (objects): {fmt.var('country')}  and {fmt.var('year')}. Each record corresponds to the result of the survey for a given year and country: we call them {fmt.em("indexers")}.
+        - The dataset is structured around {fmt.nmb("2")} categorical variables (objects): {fmt.var('country')}  and {fmt.var('year')}. Each record corresponds to the result of the survey for a given year and country: we call them {fmt.em("indexers")}.
         - The {fmt.em("target")} is represented by the variable {fmt.var('target')} (float).
         - All other variables (floats) are {fmt.em("features")}.
-    ''')
+    ''', unsafe_allow_html=True)
     
     with st.expander("Show variables definitions"):
         for key, value in dst.variables.items():
@@ -92,12 +90,12 @@ if page == pages[1]:
     st.dataframe(whr.describe().drop(index=['count']), use_container_width=True)
 
     st.subheader("Details")
-    st.write('''
-        - Number of records:''', len(whr),
+    st.write(f'''
+        - Number of records:''', fmt.nmb(str(len(whr))),
         '''
-        - Number of countries:''', whr[country_label].nunique(),
+        - Number of countries:''', fmt.nmb(str(whr[country_label].nunique())),
         '''
-        - Years: from''', int(whr[year_label].min()), '''to''', int(whr[year_label].max()))
+        - Years: from''', fmt.nmb(whr[year_label].min()), '''to''', fmt.nmb(whr[year_label].max()))
 
     with st.expander("Show records by year and country"):
         st.bar_chart(whr, x=year_label, y=country_label)
@@ -135,8 +133,8 @@ if page == pages[1]:
 
     st.write(f'''
         - All {fmt.em("features")} show some missing values.
-        - The dataset show''', whr.isna().sum().sum(), '''total missing values.
-        - Missing values represent''', round(whr.isna().sum().sum() * 100 / (len(whr) * 8), 2), f'''percent of all data in {fmt.em("features")}.
+        - The dataset show''', fmt.nmb(str(whr.isna().sum().sum())), '''total missing values.
+        - Missing values represent''', fmt.nmb(str(round(whr.isna().sum().sum() * 100 / (len(whr) * 8), 2))), f'''percent of all data in {fmt.em("features")}.
     ''')
 
     st.subheader("Correlations")
@@ -194,7 +192,7 @@ if page == pages[2]:
 
     st.write(f"The map shows some clusters, especially with high happiness levels for {fmt.em("the West")} and lowest ones in {fmt.em("Africa")} and {fmt.em("Middle East")}.")
 
-    st.write("The year", 2005, f"is an exception, with very few countries participating to the survey and very high levels for the {fmt.em("target")} variable, meaning this year can't be globally compared to the others. However,", 2005, "values are consistent with next years values for these countries.")
+    st.write(f"The year {fmt.nmb("2005")}, is an exception, with very few countries participating to the survey and very high levels for the {fmt.em("target")} variable, meaning this year can't be globally compared to the others. However, {fmt.nmb("2005")} values are consistent with next years values for these countries.")
 
     st.subheader("Per country")
     country_viz_filter_col1, country_viz_filter_col2 = st.columns(2, gap='large')
@@ -286,7 +284,7 @@ if page == pages[3]:
         column_config={'count': st.column_config.Column("Number of records", width='medium')}
     )
 
-    st.write("We can keep countries with records for", 2022, "and", 2021, ":")
+    st.write(f"We can keep countries with records for {fmt.nmb("2022")} and {fmt.nmb("2021")}:")
 
     countries_to_keep = max_year_per_country[max_year_per_country[year_label].isin(['2022', '2021'])]
     whr_pp = whr[whr[country_label].isin(countries_to_keep.index)].reset_index(drop=True)
@@ -303,8 +301,8 @@ if page == pages[3]:
     )
 
     st.write(
-        "We kept", len(whr_pp), "records for", len(countries_to_keep), "countries,",
-        "compared to", len(whr), "records for", whr[country_label].nunique(), "countries before filtering."
+        "We kept", fmt.nmb(str(len(whr_pp))), "records for", fmt.nmb(str(len(countries_to_keep))), "countries,",
+        "compared to", fmt.nmb(str(len(whr))), "records for", fmt.nmb(str(whr[country_label].nunique())), "countries before filtering."
     )
 
     st.subheader("Handling missing values")
@@ -358,7 +356,7 @@ if page == pages[3]:
         country_data = country_data.interpolate(method='linear', limit_direction='both')
         whr_pp.update(country_data)
     
-    st.write("We reduced missing values from", whrpp_nans_before, "to", whr_pp.isna().sum().sum(), "corresponding to completely empty Series, that we can fill with mean values per year:")
+    st.write("We reduced missing values from", fmt.nmb(str(whrpp_nans_before)), "to", fmt.nmb(str(whr_pp.isna().sum().sum())), "corresponding to completely empty Series, that we can fill with mean values per year:")
 
     st.code(
         '''
@@ -393,7 +391,7 @@ if page == pages[4]:
     st.subheader("Performance metrics")
 
     for key, value in mlc.metrics.items():
-        st.markdown(f'''
+        st.write(f'''
             {fmt.em(key)}  
             {value['definition']}
         ''')
@@ -405,7 +403,7 @@ if page == pages[4]:
     st.write("In order to determine the most suitable model for our problem, we compared the following models:")
 
     for key, value in mlc.models.items():
-        st.markdown(f'''
+        st.write(f'''
             {fmt.em(key)}  
             {value['definition']}
         ''')
