@@ -8,6 +8,7 @@ import pandas as pd
 import plotly.express as px
 import shap
 import streamlit as st
+from sklearn.preprocessing import StandardScaler
 
 # Browser tab display
 st.set_page_config(
@@ -38,7 +39,7 @@ pages = [
     "Preprocessing",
     "Modeling",
     "Interpretation",
-    "Try it"
+    "2024 Dataset"
 ]
 
 page = st.sidebar.radio("", options=pages)
@@ -104,7 +105,7 @@ if page == pages[1]:
         - Years: from''', fmt.nmb(whr[year_label].min()), '''to''', fmt.nmb(whr[year_label].max()))
 
     with st.expander("Show records by year and country"):
-        st.bar_chart(whr, x=year_label, y=country_label)
+        st.bar_chart(whr, x=year_label, y=country_label, height=3400)
 
         st.caption("We observe that some countries show few records, and some - same or others - have not participated in the study recently. We may need to filter our dataset for modeling purposes.")
 
@@ -199,7 +200,7 @@ if page == pages[2]:
 
     st.write(f"The map shows some clusters, especially with high happiness levels for {fmt.em("the West")} and lowest ones in {fmt.em("Africa")} and {fmt.em("Middle East")}.")
 
-    st.write(f"The year {fmt.nmb("2005")}, is an exception, with very few countries participating to the survey and very high levels for the {fmt.em("target")} variable, meaning this year can't be globally compared to the others. However, {fmt.nmb("2005")} values are consistent with next years values for these countries.")
+    st.write(f"The year {fmt.nmb("2005")} is an exception, with very few countries participating to the survey and very high levels for the {fmt.em("target")} variable, meaning this year can't be globally compared to the others. However, {fmt.nmb("2005")} values are consistent with next years values for these countries.")
 
     st.subheader("Per country")
     country_viz_filter_col1, country_viz_filter_col2 = st.columns(2, gap='large')
@@ -438,41 +439,23 @@ if page == pages[4]:
 
             modeling_model = ml.execute(modeling_model_select, modeling_data)
 
-            modeling_model_metrics = ml.metrics(modeling_model, modeling_data)
+            R2, MAE, RMSE = ml.metrics(modeling_model, modeling_data)
 
-            R2 = modeling_model_metrics[0]
-            MAE = modeling_model_metrics[1]
-            RMSE = modeling_model_metrics[2]
+            modeling_metrics_col1, modeling_metrics_col2, modeling_metrics_col3 = st.columns(3, gap='large')
 
-            modeling_metrics_metric_col1, modeling_metrics_metric_col2, modeling_metrics_metric_col3 = st.columns(3, gap='large')
+            with modeling_metrics_col1:
+                ml.metric_widget("R\u00b2", R2)
 
-            with modeling_metrics_metric_col1:
-                st.metric("R\u00b2 Test",
-                    round(R2[1], 2),
-                    delta=round(R2[1] - R2[0], 2),
-                    help="R\u00b2 Train = " + str(round(R2[0], 2))
-                )
+            with modeling_metrics_col2:
+                ml.metric_widget("MAE", MAE, 'inverse')
 
-            with modeling_metrics_metric_col2:
-                st.metric("MAE Test",
-                    round(MAE[1], 2),
-                    delta=round(MAE[1] - MAE[0], 2),
-                    delta_color='inverse',
-                    help="MAE Train = " + str(round(MAE[0], 2))
-                )
-
-            with modeling_metrics_metric_col3:
-                st.metric("RMSE Test",
-                    round(RMSE[1], 2),
-                    delta=round(RMSE[1] - RMSE[0], 2),
-                    delta_color='inverse',
-                    help="RMSE Train = " + str(round(RMSE[0], 2))
-                )
+            with modeling_metrics_col3:
+                ml.metric_widget("RMSE", RMSE, 'inverse')
 
             st.caption(f"Delta in these metrics show how {fmt.em("Test")} results behave compared to {fmt.em("Train")} results.")
 
             st.write(f'''
-                - Every {fmt.em("feature")} contributes to improvig the model's performance, even marginally: there is no way to enhance the model by removing any of them.
+                - Every {fmt.em("feature")} contributes to improving the model's performance, even marginally: there is no way to enhance the model by removing any of them.
                 - {fmt.em("Linear Regression")} seems to have less favorable performance compared to other models, but it is also the most robust: all other models exhibit overfitting.
             ''')
 
@@ -490,11 +473,7 @@ if page == pages[4]:
 
                     gs_model = ml.execute(gs_item, gs_data, gridsearch=True)
 
-                    gs_model_metrics = ml.metrics(gs_model, gs_data)
-
-                    gs_R2 = gs_model_metrics[0]
-                    gs_MAE = gs_model_metrics[1]
-                    gs_RMSE = gs_model_metrics[2]
+                    gs_R2, gs_MAE, gs_RMSE = ml.metrics(gs_model, gs_data)
 
                     gs_metrics.loc[len(gs_metrics.index)] = [
                         gs_item,
@@ -572,7 +551,7 @@ if page == pages[5]:
         shap_countries = st.multiselect(
             "Select countries (rank in parentheses)",
             list(range(len(final_model_data[1]))),
-            format_func=lambda x: whr_pp['Country'].unique()[x] + " (" + str(int(target_ranks.iloc[x])) + ")",
+            format_func=lambda x: whr_pp[country_label].unique()[x] + " (" + str(int(target_ranks.iloc[x])) + ")",
             max_selections=4
         )
 
@@ -606,9 +585,101 @@ if page == pages[5]:
         ''')
 
 
-###############################
-#          6. TRY IT          #
-###############################
+#####################################
+#          6. 2024 DATASET          #
+#####################################
 if page == pages[6]:
-    st.write("Try it")
+    whr_24 = dfr.get_df('2024')
+
+    max_year_per_country = whr_24.groupby(country_label).agg({year_label: 'max'})
+    countries_to_keep = max_year_per_country[max_year_per_country[year_label].isin(['2023'])]
+    whr_24_pp = whr_24[whr_24[country_label].isin(countries_to_keep.index)].reset_index(drop=True)
+
+    for country in whr_24_pp[country_label].unique():
+        country_data = whr_24_pp[whr_24_pp[country_label] == country]
+        country_data = country_data.interpolate(method='linear', limit_direction='both')
+        whr_24_pp.update(country_data)
+
+    for col in whr_24_pp.drop(columns=[country_label, year_label]).columns:
+        whr_24_pp[col] = whr_24_pp.groupby([year_label])[col].transform(lambda x: x.fillna(x.mean()))
+
+    st.write(fmt.cite("The data and the model stay stable after the update for the [2024 report](https://worldhappiness.report/ed/2024/), confirming that the method is robust and the previous analysis is still relevant."))
+
+    data = ml.prepare(whr_24_pp, features)
+    model = ml.execute('Linear Regression', data)
+
+    st.subheader("Metrics")
+    R2, MAE, RMSE = ml.metrics(model, data)
+
+    metrics_col1, metrics_col2, metrics_col3 = st.columns(3, gap='large')
+
+    with metrics_col1:
+        ml.metric_widget("R\u00b2", R2)
+
+    with metrics_col2:
+        ml.metric_widget("MAE", MAE, 'inverse')
+
+    with metrics_col3:
+        ml.metric_widget("RMSE", RMSE, 'inverse')
+
+    st.subheader("Coefficients")
+    explainer = shap.LinearExplainer(model, data[0])
+    shap_values = explainer.shap_values(data[1])
+
+    fig, ax = plt.subplots()
+    ax = shap.summary_plot(shap_values, data[1], plot_type='bar')
+    plt.title("Absolute values")
+    st.pyplot(fig)
     
+    fig, ax = plt.subplots()
+    ax = shap.summary_plot(shap_values, data[1])
+    plt.title("Actual values")
+    st.pyplot(fig)
+    
+    ranks = data[3].rank(ascending=False)
+
+    country = st.selectbox(
+        "Choose a country",
+        list(range(len(data[1]))),
+        format_func=lambda x: whr_24_pp[country_label].unique()[x] + " (" + str(int(ranks.iloc[x])) + ")"
+    )
+    
+    idx = int(data[1].reset_index(names='idx').iloc[country]['idx'])
+
+    expl = shap.Explanation(
+        values = shap_values[country],
+        base_values = explainer.expected_value,
+        data = whr_24_pp[features].iloc[idx,:],
+        feature_names = data[1].reset_index(drop=True).columns
+    )
+    
+    fig, ax = plt.subplots()
+    ax = shap.plots.waterfall(expl)
+    plt.title(
+        whr_24_pp.iloc[idx][country_label]
+        + " - " + target_label + " = " + str(round(whr_24_pp.iloc[idx][target_label], 2))
+    )
+    st.pyplot(fig)
+
+    st.subheader("Try it")
+    st.write(f"Adjust following values to simulate the predicted value by the model, and illustrate the influence of each {fmt.em("feature")} on the {fmt.em("target")} variable.")
+
+    st.caption("The range of possible values goes from the lowest to the highest present in the dataset. The default values on loading correspond to the median values of the dataset.")
+
+    feat_vals = {}
+
+    for feat in features:
+        min_val = whr[feat].min()
+        max_val = whr[feat].max()
+        med_val = whr[feat].median()
+
+        feat_vals[feat] = st.slider(feat, min_val, max_val, med_val)
+    
+    feat_vals_df = pd.DataFrame([feat_vals])
+
+    sc = StandardScaler()
+    sc.fit(whr_24_pp[features])
+
+    feat_vals_sc = sc.transform(feat_vals_df)
+    
+    st.metric(f"Predicted {target_label}", round(model.predict(feat_vals_sc)[0], 3))

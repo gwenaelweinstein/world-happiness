@@ -92,3 +92,12 @@ def metrics(model, data):
     RMSE_test = mean_squared_error(y_test, y_pred_test, squared = False)
 
     return (R2_train, R2_test), (MAE_train, MAE_test), (RMSE_train, RMSE_test)
+
+# Render metric widget
+def metric_widget(name, value, delta_color='normal'):
+    st.metric(name + " Test",
+        round(value[1], 2),
+        delta=round(value[1] - value[0], 2),
+        delta_color=delta_color,
+        help=name + " Train = " + str(round(value[0], 2))
+    )
