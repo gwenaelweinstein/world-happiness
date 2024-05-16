@@ -39,7 +39,8 @@ pages = [
     "Preprocessing",
     "Modeling",
     "Interpretation",
-    "2024 Dataset"
+    "2024 Dataset",
+    "Conclusion"
 ]
 
 page = st.sidebar.radio("", options=pages)
@@ -683,3 +684,35 @@ if page == pages[6]:
     feat_vals_sc = sc.transform(feat_vals_df)
     
     st.metric(f"Predicted {target_label}", round(model.predict(feat_vals_sc)[0], 3))
+
+
+###################################
+#          7. CONCLUSION          #
+###################################
+if page == pages[7]:
+    st.write(f"As expected, {fmt.var('gdp')} and {fmt.var('life')} are 2 of the main factors which contribute to the level of happiness felt, a relationship which could be summarized in a slogan like:")
+
+    st.write(fmt.cite("Healthy, Wealthy, Happy!"))
+
+    st.write(f"Even if these indicators are well-known in political science, this study shows that they are not sufficient on their own.")
+
+    st.subheader("Effects of inequality on the sense of happiness")
+    st.write("First of all, we cannot just base an analysis on their average value. For example, we observed a threshold effect seeming to indicate that from a certain peak, say a “satisfactory” standard of living and health, happiness no longer increases proportionally.")
+
+    st.write("Conversely, extremely low values of these indicators are accompanied by drastic drops in the level of happiness.")
+
+    st.write("We could deduce an interest, in terms of political decision, in prioritizing the reduction of inequalities rather than the gross value of the GDP of a given country, for example by focusing on the distribution of income (minimum, quantiles, median...).")
+
+    st.subheader("Primary needs and aspirations")
+    st.write(f"We also note that in the most privileged contexts (high {fmt.var('gdp')} and {fmt.var('life')}, stable and peaceful countries), other factors become more significant and allow for distinguishing between countries, notably the level of corruption.")
+
+    st.write(f"On the contrary, in the least privileged situations (poor countries, political instability or even war), the notions of corruption and freedom carry very little weight compared to indicators such as {fmt.var('gdp')} and {fmt.var('life')}.")
+
+    st.write("It seems quite intuitive to consider that it is first necessary to meet primary needs, but that once these needs are met, notions such as freedom or ethics become important concerns.")
+
+    st.subheader("About social support")
+    st.write(f"Among the characteristics having the most impact in explaining the happiness rate, {fmt.var('support')} raises questions about the way in which it could influence political decisions.")
+    
+    st.write(f"It therefore seems a priori to arise from a personal context (family or friends), independent of the socio-economic context. But if we have to consider that the government lacks levers to improve it, we can imagine that it must consider ways to compensate for it, how to provide {fmt.var('support')} to those who lack it, for example by providing assistance for isolated individuals.")
+
+    st.write(fmt.cite("This characteristic implicitly raises the question of the right to failure or accident, at the heart of health insurance systems or unemployment benefits for example, mechanisms aimed at attenuating inequalities by pooling risks."))
