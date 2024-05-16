@@ -1,6 +1,8 @@
+matplotlib
 pandas
 plotly
 scikit-learn
 scipy
+shap
 streamlit
 xlrd

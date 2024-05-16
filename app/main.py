@@ -2,9 +2,11 @@ import dataframes as dfr
 import datasets as dst
 import formats as fmt
 import machine_learning as ml
+import matplotlib.pyplot as plt
 import ml_context as mlc
 import pandas as pd
 import plotly.express as px
+import shap
 import streamlit as st
 
 # Browser tab display
@@ -34,13 +36,16 @@ pages = [
     "Data exploration",
     "Data visualization",
     "Preprocessing",
-    "Modeling"
+    "Modeling",
+    "Interpretation",
+    "Try it"
 ]
 
 page = st.sidebar.radio("", options=pages)
 
 if page != pages[0]:
     st.header(page)
+
 
 #####################################
 #          0. INTRODUCTION          #
@@ -63,6 +68,7 @@ if page == pages[0]:
     st.write(fmt.cite("With this project, we want to present this data using interactive visualizations and determine combinations of factors that explain why some countries are better ranked than others."))
 
     st.caption(f"The current project and app have been done with data from the [2023 report](https://worldhappiness.report/ed/2023/). We may be able to test our process with data from {fmt.nmb("2024")} at the end of this work.")
+
 
 #########################################
 #          1. DATA EXPLORATION          #
@@ -155,6 +161,7 @@ if page == pages[1]:
         - {fmt.var('generosity')} shows relatively weak correlation scores.
         - The strongest correlation observed concerns the relationship between {fmt.var('gdp')} and {fmt.var('life')}.
     ''')
+
 
 ###########################################
 #          2. DATA VISUALIZATION          #
@@ -266,6 +273,7 @@ if page == pages[2]:
     else:
         fmt.error("Not enough records available.")
 
+
 ######################################
 #          3. PREPROCESSING          #
 ######################################
@@ -306,7 +314,6 @@ if page == pages[3]:
     )
 
     st.subheader("Handling missing values")
-
     st.write(f"{fmt.em("Linear interpolation")} is an efficient method for estimating missing values based on adjacent data points. Regarding our dataset, it means we can fill data gaps based on observed trends for each country.")
 
     st.write("In return, this method requires handling missing values before the holdout step.")
@@ -370,7 +377,6 @@ if page == pages[3]:
         whr_pp[col] = whr_pp.groupby([year_label])[col].transform(lambda x: x.fillna(x.mean()))
 
     st.subheader("Feature scaling")
-
     st.write(f"All features are numerical and at the same scale, except for {fmt.var('gdp')} and {fmt.var('life')}.")
 
     st.write(fmt.cite("We may need to use standardization before modeling."))
@@ -378,18 +384,17 @@ if page == pages[3]:
     if st.session_state.whr_pp is None:
         st.session_state.whr_pp = whr_pp
 
+
 #################################
 #          4. MODELING          #
 #################################
 if page == pages[4]:
     st.subheader("Classification")
-
     st.write(f"The machine learning problem at hand involves predicting a continuous variable, the {fmt.var('target')}, relying on 8 independent numerical variables as {fmt.em("features")}.")
 
     st.write(fmt.cite("Therefore, this project pertains to an issue of linear regression."))
 
     st.subheader("Performance metrics")
-
     for key, value in mlc.metrics.items():
         st.write(f'''
             {fmt.em(key)}  
@@ -399,7 +404,6 @@ if page == pages[4]:
     st.caption("If the accuracy of our predictions is a good performance indicator for our model, the focus will mainly be on interpreting these results.")
 
     st.subheader("Model selection")
-
     st.write("In order to determine the most suitable model for our problem, we compared the following models:")
 
     for key, value in mlc.models.items():
@@ -409,7 +413,6 @@ if page == pages[4]:
         ''')
 
     st.subheader("Process")
-
     if st.session_state.whr_pp is None:
         fmt.error("You need to run Preprocessing step before processing Modeling.")
     
@@ -423,7 +426,7 @@ if page == pages[4]:
         )
 
         modeling_model_select = st.selectbox(
-            "Choose a model",
+            "Pick a model",
             mlc.models.keys()
         )
 
@@ -466,7 +469,7 @@ if page == pages[4]:
                     help="RMSE Train = " + str(round(RMSE[0], 2))
                 )
 
-            st.caption("Delta in these metrics show how Test results behave compared to Train results.")
+            st.caption(f"Delta in these metrics show how {fmt.em("Test")} results behave compared to {fmt.em("Train")} results.")
 
             st.write(f'''
                 - Every {fmt.em("feature")} contributes to improvig the model's performance, even marginally: there is no way to enhance the model by removing any of them.
@@ -512,3 +515,100 @@ if page == pages[4]:
                 st.dataframe(gs_metrics, hide_index=True, use_container_width=True)
             
             st.write(fmt.cite(f"No other model shows a better compromise between performance and robustness than {fmt.em("Linear Regression")} after {fmt.em("Grid Search")} optimization: either the model suffers from a great loss of performance, or we are not able to reduce overfitting enough."))
+
+
+#######################################
+#          5. INTERPRETATION          #
+#######################################
+if page == pages[5]:
+    st.write(f"Inspired by game theory and based on {fmt.em("Shapley")} values, the {fmt.em("SHAP")} method - {fmt.em("SHapley Additive exPlanations")} - is a technique for interpreting the results of a machine learning model which makes it possible to estimate the part taken by each characteristic in the prediction.")
+    
+    st.write("It has the particular advantage of allowing analysis at the global and local level, of being efficient and quite simple to use.")
+
+    if st.session_state.whr_pp is None:
+        fmt.error("You need to run Preprocessing step before processing Interpretation.")
+
+    else:
+        whr_pp = st.session_state.whr_pp
+        
+        final_model_data = ml.prepare(whr_pp, features)
+
+        final_model = ml.execute('Linear Regression', final_model_data)
+
+        st.subheader("Global analysis")
+        explainer = shap.LinearExplainer(final_model, final_model_data[0])
+        
+        shap_values = explainer.shap_values(final_model_data[1])
+
+        fig, ax = plt.subplots()
+        ax = shap.summary_plot(shap_values, final_model_data[1], plot_type='bar')
+        plt.title("Absolute values")
+        st.pyplot(fig)
+
+        st.write(f'''
+            - Displaying absolute {fmt.em("SHAP")} values first reveals the particularly pronounced influence of {fmt.var('gdp')} on the prediction.
+            - Next, we observe a cluster of three high-impact {fmt.em("features")}, consisting of {fmt.var('support')}, {fmt.var('positivity')} and {fmt.var('life')}.
+            - Other {fmt.em("features")} have a weaker impact, although {fmt.var('corruption')} is not negligible.
+            - The impact of {fmt.var('negativity')} is null.
+        ''')
+
+        fig, ax = plt.subplots()
+        ax = shap.summary_plot(shap_values, final_model_data[1])
+        plt.title("Actual values")
+        st.pyplot(fig)
+
+        st.write(f'''
+            - Displaying actual {fmt.em("SHAP")} values confirms the hierarchy observed previously.
+            - With the exception of {fmt.var('corruption')}, we observe that high values have a positive impact on the prediction, and vice versa.
+            - {fmt.var('gdp')}, {fmt.var('support')} and {fmt.var('positivity')} exhibit widely spread values, confirming their strong impact on the prediction.
+            - We also observe a shift towards the negative for these three {fmt.em("features")}, indicating a greater negative impact of low values than the positive impact of high values. This could suggest a threshold effect, where either values are no longer likely to increase, or their increase no longer leads to an increase in the {fmt.em("target")}.
+            - This shift towards the negative also means that median values have a negative impact, particularly noticeable for {fmt.var('support')}.
+            - In contrast, while {fmt.var('corruption')} has a limited negative impact, it can have a non-negligible positive impact for the lowest values. Other {fmt.em("features")} have very limited, if any, impact.
+        ''')
+
+        st.subheader("Local analysis")
+        target_ranks = final_model_data[3].rank(ascending=False)
+
+        shap_countries = st.multiselect(
+            "Select countries (rank in parentheses)",
+            list(range(len(final_model_data[1]))),
+            format_func=lambda x: whr_pp['Country'].unique()[x] + " (" + str(int(target_ranks.iloc[x])) + ")",
+            max_selections=4
+        )
+
+        for shap_country in shap_countries:
+
+            whr_idx = int(final_model_data[1].reset_index(names='whr_idx').iloc[shap_country]['whr_idx'])
+
+            expl = shap.Explanation(
+                values = shap_values[shap_country],
+                base_values = explainer.expected_value,
+                data = whr_pp[features].iloc[whr_idx,:],
+                feature_names = final_model_data[1].reset_index(drop=True).columns
+            )
+            
+            fig, ax = plt.subplots()
+            ax = shap.plots.waterfall(expl)
+            plt.title(
+                whr_pp.iloc[whr_idx][country_label]
+                + " - " + target_label + " = " + str(round(whr_pp.iloc[whr_idx][target_label], 2))
+            )
+            st.pyplot(fig)
+
+        st.write(f'''
+            - Studying {fmt.em("SHAP")} coefficients by country allows us to refine our observations, in particular the significant impact of {fmt.var('gdp')}, {fmt.var('life')}, {fmt.var('support')} and {fmt.var('positivity')} in estimating the {fmt.var('target')}.
+            - Generally, the more accurate the prediction, the more the weight of each {fmt.em("feature")} is proportionally equivalent to the average weight observed with the global method, while the less accurate predictions sometimes show surprising distributions.
+            - These graphs also clearly illustrate that prediction errors are more pronounced for countries with a low happiness rate, like {fmt.em("Afghanistan")}, {fmt.em("Lebanon")} or {fmt.em("Sierra Leone")}.
+            - Surprisingly, {fmt.var('support')} and {fmt.em('positivity')} sometimes appear to be slightly over-represented in terms of impact compared to {fmt.em('gdp')} and {fmt.em('life')} for these lowest-ranked countries.
+            - For top-ranked countries, such as {fmt.em("Denmark")}, {fmt.em("Finland")} or {fmt.em("Iceland")}, {fmt.var('corruption')} has a disproportionate impact compared to its overall impact.
+            - The actual impact of each {fmt.em("feature")} for each record seems to generally respect the ratio between the global coefficient and the {fmt.em("feature")}'s value, all other things being equal. For example, we observe that a {fmt.em("feature")} with a supposed low weight can have a significant impact if its value is particularly high, as illustrated by {fmt.var('generosity')} in the cases of {fmt.em("Uzbekistan")} and {fmt.em("Ukraine")}.
+            - {fmt.var('negativity')} has no impact, regardless of its value.
+        ''')
+
+
+###############################
+#          6. TRY IT          #
+###############################
+if page == pages[6]:
+    st.write("Try it")
+    
