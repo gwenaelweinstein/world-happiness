@@ -57,7 +57,7 @@ if page == pages[0]:
 
     st.write("This work has been conducted as part of the [Data Analyst training program at DataScientest](https://datascientest.com/formation-data-analyst) in partnership with [Mines ParisTech PSL](https://executive-education.minesparis.psl.eu/).")
 
-    st.image('assets/whr-cover.jpg', use_column_width=True)
+    st.image('whr-cover.jpg', use_column_width=True)
     st.caption('Credits: image by [Phạm Quốc Nguyên](https://pixabay.com/fr/users/sanshiro-5833092)')
 
     st.subheader("Context and goal")
