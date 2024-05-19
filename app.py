@@ -71,6 +71,8 @@ if page == pages[0]:
 
     st.caption(f"The current project and app have been done with data from the [2023 report](https://worldhappiness.report/ed/2023/). We may be able to test our process with data from {fmt.nmb("2024")} at the end of this work.")
 
+    st.write("[Read full report in PDF (French)](https://www.nobots.fr/docs/dst-whr.pdf).")
+
 
 #########################################
 #          1. DATA EXPLORATION          #
@@ -127,7 +129,7 @@ if page == pages[1]:
 
     nans_per_variable_show_len_toggle = st.toggle("Show missing values compared to total records")
 
-    fig = px.bar(whr[features].isna().sum())
+    fig = px.bar(whr[features].isna().sum(), hover_data={'variable': False})
     
     fig.update_layout(margin={'t': 10, 'b': 10, 'l': 10, 'r': 10})
     fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
@@ -190,12 +192,21 @@ if page == pages[2]:
         locationmode='country names',
         color=target_label,
         size=target_label,
-        color_continuous_scale=['#FF4B4B', '#FFFF00', '#09AB3B']
+        color_continuous_scale=['#FF4B4B', '#FFFF00', '#09AB3B'],
+        hover_name=country_label,
+        hover_data={
+            country_label: False,
+            target_label: ':.2f'
+        }
     )
 
     fig.update_layout(margin={'t': 0, 'b': 0, 'l': 0, 'r': 0})
     fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
-    fig.update_geos(bgcolor='rgba(0, 0, 0, 0)')
+    fig.update_geos(
+        bgcolor='rgba(0, 0, 0, 0)',
+        coastlinecolor=st.config.get_option('theme.secondaryBackgroundColor'),
+        countrycolor=st.config.get_option('theme.secondaryBackgroundColor')
+    )
 
     st.plotly_chart(fig, use_container_width=True)
 
@@ -224,7 +235,10 @@ if page == pages[2]:
             x=year_label,
             y=country_viz_variable,
             markers=True,
-            labels={year_label: "", "value": country_viz_variable})
+            labels={year_label: "", "value": country_viz_variable},
+            hover_data={year_label: False},
+            hover_name=year_label
+        )
    
         fig.add_hline(
             y=whr[whr[country_label] == country_viz_country][country_viz_variable].mean(),
@@ -716,3 +730,5 @@ if page == pages[7]:
     st.write(f"It therefore seems a priori to arise from a personal context (family or friends), independent of the socio-economic context. But if we have to consider that the government lacks levers to improve it, we can imagine that it must consider ways to compensate for it, how to provide {fmt.var('support')} to those who lack it, for example by providing assistance for isolated individuals.")
 
     st.write(fmt.cite("This characteristic implicitly raises the question of the right to failure or accident, at the heart of health insurance systems or unemployment benefits for example, mechanisms aimed at attenuating inequalities by pooling risks."))
+
+    st.write("[Read full report in PDF (French)](https://www.nobots.fr/docs/dst-whr.pdf).")
