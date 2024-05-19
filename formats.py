@@ -2,6 +2,7 @@ import dataframes as dfr
 import streamlit as st
 
 # Render style for variable
+@st.cache_data
 def var(var):
     return ":red[***" + dfr.get_label(var) + "***]"
 
