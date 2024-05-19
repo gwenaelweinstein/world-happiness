@@ -129,7 +129,7 @@ if page == pages[1]:
 
     nans_per_variable_show_len_toggle = st.toggle("Show missing values compared to total records")
 
-    fig = px.bar(whr[features].isna().sum())
+    fig = px.bar(whr[features].isna().sum(), hover_data={'variable': False})
     
     fig.update_layout(margin={'t': 10, 'b': 10, 'l': 10, 'r': 10})
     fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
@@ -192,7 +192,12 @@ if page == pages[2]:
         locationmode='country names',
         color=target_label,
         size=target_label,
-        color_continuous_scale=['#FF4B4B', '#FFFF00', '#09AB3B']
+        color_continuous_scale=['#FF4B4B', '#FFFF00', '#09AB3B'],
+        hover_name=country_label,
+        hover_data={
+            country_label: False,
+            target_label: ':.2f'
+        }
     )
 
     fig.update_layout(margin={'t': 0, 'b': 0, 'l': 0, 'r': 0})
@@ -230,7 +235,10 @@ if page == pages[2]:
             x=year_label,
             y=country_viz_variable,
             markers=True,
-            labels={year_label: "", "value": country_viz_variable})
+            labels={year_label: "", "value": country_viz_variable},
+            hover_data={year_label: False},
+            hover_name=year_label
+        )
    
         fig.add_hline(
             y=whr[whr[country_label] == country_viz_country][country_viz_variable].mean(),
