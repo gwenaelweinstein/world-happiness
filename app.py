@@ -195,7 +195,11 @@ if page == pages[2]:
 
     fig.update_layout(margin={'t': 0, 'b': 0, 'l': 0, 'r': 0})
     fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
-    fig.update_geos(bgcolor='rgba(0, 0, 0, 0)')
+    fig.update_geos(
+        bgcolor='rgba(0, 0, 0, 0)',
+        coastlinecolor=st.config.get_option('theme.secondaryBackgroundColor'),
+        countrycolor=st.config.get_option('theme.secondaryBackgroundColor')
+    )
 
     st.plotly_chart(fig, use_container_width=True)
 
