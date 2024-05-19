@@ -43,7 +43,7 @@ pages = [
     "Conclusion"
 ]
 
-page = st.sidebar.radio("", options=pages)
+page = st.sidebar.radio("Nav", options=pages, label_visibility='hidden')
 
 if page != pages[0]:
     st.header(page)
