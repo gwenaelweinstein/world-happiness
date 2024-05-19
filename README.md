@@ -12,4 +12,4 @@ This app runs with docker. Use ```make start``` or ```make stop```. Access app a
 
 The live app is hosted at https://world-happiness-report.streamlit.app/.
 
-Read [Read full report in PDF (French)](https://www.nobots.fr/docs/dst-whr.pdf).
+Read [full report in PDF (French)](https://www.nobots.fr/docs/dst-whr.pdf).
