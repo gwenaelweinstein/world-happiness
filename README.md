@@ -4,6 +4,12 @@ An analysis of well-being on Earth based on a Streamlit application, conducted a
 
 This work is about data collected by the [World Happiness Report](https://worldhappiness.report/), whose survey aims to estimate the level of happiness by country based on socio-economic measures around health, education, corruption, economy, life expectancy, etc.
 
-## Running app
+## Run app locally
 
-This app runs with docker. Use ```make start``` or ```make stop```. Access app locally at http://localhost:8501/.
+This app runs with docker. Use ```make start``` or ```make stop```. Access app at http://localhost:8501/.
+
+## See it live
+
+The live app is hosted at https://world-happiness-report.streamlit.app/.
+
+Read [Read full report in PDF (French)](https://www.nobots.fr/docs/dst-whr.pdf).
