@@ -18,5 +18,6 @@ def get_df(year):
     return df
 
 # Get final label for a variable/column
+@st.cache_data
 def get_label(var):
     return dst.variables[var]['label']
