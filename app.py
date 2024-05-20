@@ -48,6 +48,21 @@ page = st.sidebar.radio("Nav", options=pages, label_visibility='hidden')
 if page != pages[0]:
     st.header(page)
 
+# Matplotlib theme
+plt.rcParams.update({
+    'axes.linewidth': 0.5,
+    'axes.edgecolor': st.config.get_option('theme.secondaryBackgroundColor'),
+    'axes.facecolor': st.config.get_option('theme.backgroundColor'),
+    'axes.labelcolor': st.config.get_option('theme.backgroundColor'),
+    'axes.titlecolor': st.config.get_option('theme.textColor'),
+    'axes.titlesize': 'x-large',
+    'figure.facecolor': st.config.get_option('theme.backgroundColor'),
+    'lines.linewidth': 0.5,
+    'text.color': st.config.get_option('theme.textColor'),
+    'xtick.color': st.config.get_option('theme.textColor'),
+    'ytick.color': st.config.get_option('theme.textColor')
+})
+
 
 #####################################
 #          0. INTRODUCTION          #
@@ -535,8 +550,15 @@ if page == pages[5]:
         shap_values = explainer.shap_values(final_model_data[1])
 
         fig, ax = plt.subplots()
-        ax = shap.summary_plot(shap_values, final_model_data[1], plot_type='bar')
-        plt.title("Absolute values")
+        ax = shap.summary_plot(
+            shap_values,
+            final_model_data[1],
+            plot_type='bar',
+            axis_color=st.config.get_option('theme.textColor')
+        )
+        plt.title("Absolute values", fontsize=12)
+        plt.yticks(fontsize=11)
+        plt.xticks(fontsize=9)
         st.pyplot(fig)
 
         st.write(f'''
@@ -547,8 +569,15 @@ if page == pages[5]:
         ''')
 
         fig, ax = plt.subplots()
-        ax = shap.summary_plot(shap_values, final_model_data[1])
-        plt.title("Actual values")
+        ax = shap.summary_plot(
+            shap_values,
+            final_model_data[1],
+            axis_color=st.config.get_option('theme.textColor'),
+            color_bar_label=None
+        )
+        plt.title("Actual values", fontsize=12)
+        plt.yticks(fontsize=11)
+        plt.xticks(fontsize=9)
         st.pyplot(fig)
 
         st.write(f'''
