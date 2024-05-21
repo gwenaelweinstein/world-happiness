@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import ml_context as mlc
 import pandas as pd
 import plotly.express as px
+import random
 import shap
 import streamlit as st
 from sklearn.preprocessing import StandardScaler
@@ -75,6 +76,7 @@ if page == pages[0]:
     st.image('whr-cover.jpg', use_column_width=True)
     st.caption('Credits: image by [Phạm Quốc Nguyên](https://pixabay.com/fr/users/sanshiro-5833092)')
 
+    st.write("")
     st.subheader("Context and goal")
     st.write(f"The {fmt.em("World Happiness Report")} is a publication of the [Sustainable Development Solutions Network](https://www.unsdsn.org/) for the United Nations, and powered by [Gallup World Poll](https://www.gallup.com/178667/gallup-world-poll-work.aspx) data. Its goal is to give more importance to happiness and well-being as criteria for assessing government policies.")
 
@@ -83,6 +85,7 @@ if page == pages[0]:
     st.write(f"A report is published every year since {fmt.nmb("2012")}, with data from {fmt.nmb("2005")} to the previous year of the publication.")
 
     st.write(fmt.cite("With this project, we want to present this data using interactive visualizations and determine combinations of factors that explain why some countries are better ranked than others."))
+    st.write("")
 
     st.caption(f"The current project and app have been done with data from the [2023 report](https://worldhappiness.report/ed/2023/). We may be able to test our process with data from {fmt.nmb("2024")} at the end of this work.")
 
@@ -111,9 +114,11 @@ if page == pages[1]:
 
     st.caption(f"Note that the variable {fmt.var('year')} has been cast to an object to prevent Streamlit from displaying it as a float with thousand separators, knowing that it is not used for time series in our context.")
 
+    st.write("")
     st.subheader("Statistics")
     st.dataframe(whr.describe().drop(index=['count']), use_container_width=True)
 
+    st.write("")
     st.subheader("Details")
     st.write(f'''
         - Number of records:''', fmt.nmb(str(len(whr))),
@@ -127,6 +132,7 @@ if page == pages[1]:
 
         st.caption("We observe that some countries show few records, and some - same or others - have not participated in the study recently. We may need to filter our dataset for modeling purposes.")
 
+    st.write("")
     st.subheader("Distributions")
     for col in [target_label] + features:
         fig = px.histogram(whr, col, marginal='box')
@@ -139,6 +145,7 @@ if page == pages[1]:
         - All {fmt.em("features")} show some outliers, which are not anomalies. For example, {fmt.em("Haiti")} shows a very low {fmt.var('life')} due to a natural disaster, while {fmt.em("Venezuela")} shows a very sharp fall in its {fmt.var('gdp')} following a major crisis of its economy.
     ''')
 
+    st.write("")
     st.subheader("Missing values")
     st.write(f"We know for sure that {fmt.em("target")} ({fmt.var('target')}) and {fmt.em("indexers")} ({fmt.var('country')} and {fmt.var('year')}) show no missing values.")
 
@@ -162,6 +169,7 @@ if page == pages[1]:
         - Missing values represent''', fmt.nmb(str(round(whr.isna().sum().sum() * 100 / (len(whr) * 8), 2))), f'''percent of all data in {fmt.em("features")}.
     ''')
 
+    st.write("")
     st.subheader("Correlations")
     fig = px.imshow(
         whr[[target_label] + features].corr(),
@@ -229,6 +237,7 @@ if page == pages[2]:
 
     st.write(f"The year {fmt.nmb("2005")} is an exception, with very few countries participating to the survey and very high levels for the {fmt.em("target")} variable, meaning this year can't be globally compared to the others. However, {fmt.nmb("2005")} values are consistent with next years values for these countries.")
 
+    st.write("")
     st.subheader("Per country")
     country_viz_filter_col1, country_viz_filter_col2 = st.columns(2, gap='large')
 
@@ -344,6 +353,7 @@ if page == pages[3]:
         "compared to", fmt.nmb(str(len(whr))), "records for", fmt.nmb(str(whr[country_label].nunique())), "countries before filtering."
     )
 
+    st.write("")
     st.subheader("Handling missing values")
     st.write(f"{fmt.em("Linear interpolation")} is an efficient method for estimating missing values based on adjacent data points. Regarding our dataset, it means we can fill data gaps based on observed trends for each country.")
 
@@ -407,6 +417,7 @@ if page == pages[3]:
     for col in whr_pp.drop(columns=[country_label, year_label]).columns:
         whr_pp[col] = whr_pp.groupby([year_label])[col].transform(lambda x: x.fillna(x.mean()))
 
+    st.write("")
     st.subheader("Feature scaling")
     st.write(f"All features are numerical and at the same scale, except for {fmt.var('gdp')} and {fmt.var('life')}.")
 
@@ -425,6 +436,7 @@ if page == pages[4]:
 
     st.write(fmt.cite("Therefore, this project pertains to an issue of linear regression."))
 
+    st.write("")
     st.subheader("Performance metrics")
     for key, value in mlc.metrics.items():
         st.write(f'''
@@ -434,6 +446,7 @@ if page == pages[4]:
 
     st.caption("If the accuracy of our predictions is a good performance indicator for our model, the focus will mainly be on interpreting these results.")
 
+    st.write("")
     st.subheader("Model selection")
     st.write("In order to determine the most suitable model for our problem, we compared the following models:")
 
@@ -443,6 +456,7 @@ if page == pages[4]:
             {value['definition']}
         ''')
 
+    st.write("")
     st.subheader("Process")
     if st.session_state.whr_pp is None:
         fmt.error("You need to run Preprocessing step before processing Modeling.")
@@ -490,8 +504,9 @@ if page == pages[4]:
             ''')
 
             st.write(fmt.cite(f"In order to find the best compromise between performance and robustness, we'll try to optimize each of these models with {fmt.em("Grid Search")} to determine the best hyperparameters."))
+            st.write("")
 
-            fmt.warning("Grid Search optimization with many models and parameters can take a very long time, proceed with caution.")
+            fmt.warning("Grid Search optimization with many models and parameters can take a very long time, proceed with care.")
 
             gs_proceed = st.button("Proceed to Grid Search optimization", type='primary')
             
@@ -532,7 +547,7 @@ if page == pages[4]:
 if page == pages[5]:
     st.write(f"Inspired by game theory and based on {fmt.em("Shapley")} values, the {fmt.em("SHAP")} method - {fmt.em("SHapley Additive exPlanations")} - is a technique for interpreting the results of a machine learning model which makes it possible to estimate the part taken by each characteristic in the prediction.")
     
-    st.write("It has the particular advantage of allowing analysis at the global and local level, of being efficient and quite simple to use.")
+    st.write("It has the particular advantage of allowing analysis at a global and a local level, of being efficient and quite simple to use.")
 
     if st.session_state.whr_pp is None:
         fmt.error("You need to run Preprocessing step before processing Interpretation.")
@@ -544,6 +559,7 @@ if page == pages[5]:
 
         final_model = ml.execute('Linear Regression', final_model_data)
 
+        st.write("")
         st.subheader("Global analysis")
         explainer = shap.LinearExplainer(final_model, final_model_data[0])
         
@@ -559,11 +575,12 @@ if page == pages[5]:
         plt.title("Absolute values", fontsize=12)
         plt.yticks(fontsize=11)
         plt.xticks(fontsize=9)
+        st.write("")
         st.pyplot(fig)
 
         st.write(f'''
             - Displaying absolute {fmt.em("SHAP")} values first reveals the particularly pronounced influence of {fmt.var('gdp')} on the prediction.
-            - Next, we observe a cluster of three high-impact {fmt.em("features")}, consisting of {fmt.var('support')}, {fmt.var('positivity')} and {fmt.var('life')}.
+            - Next, we observe a cluster of three high-impact {fmt.em("features")}: {fmt.var('support')}, {fmt.var('positivity')} and {fmt.var('life')}.
             - Other {fmt.em("features")} have a weaker impact, although {fmt.var('corruption')} is not negligible.
             - The impact of {fmt.var('negativity')} is null.
         ''')
@@ -578,17 +595,20 @@ if page == pages[5]:
         plt.title("Actual values", fontsize=12)
         plt.yticks(fontsize=11)
         plt.xticks(fontsize=9)
+        st.write("")
         st.pyplot(fig)
 
         st.write(f'''
             - Displaying actual {fmt.em("SHAP")} values confirms the hierarchy observed previously.
             - With the exception of {fmt.var('corruption')}, we observe that high values have a positive impact on the prediction, and vice versa.
-            - {fmt.var('gdp')}, {fmt.var('support')} and {fmt.var('positivity')} exhibit widely spread values, confirming their strong impact on the prediction.
+            - {fmt.var('gdp')}, {fmt.var('support')} and {fmt.var('positivity')} show widely spread values, confirming their strong impact on the prediction.
             - We also observe a shift towards the negative for these three {fmt.em("features")}, indicating a greater negative impact of low values than the positive impact of high values. This could suggest a threshold effect, where either values are no longer likely to increase, or their increase no longer leads to an increase in the {fmt.em("target")}.
             - This shift towards the negative also means that median values have a negative impact, particularly noticeable for {fmt.var('support')}.
-            - In contrast, while {fmt.var('corruption')} has a limited negative impact, it can have a non-negligible positive impact for the lowest values. Other {fmt.em("features")} have very limited, if any, impact.
+            - In contrast, while {fmt.var('corruption')} has a limited negative impact, it can have a non-negligible positive impact for the lowest values.
+            - Other {fmt.em("features")} have very limited, if any, impact.
         ''')
 
+        st.write("")
         st.subheader("Local analysis")
         target_ranks = final_model_data[3].rank(ascending=False)
 
@@ -596,7 +616,8 @@ if page == pages[5]:
             "Select countries (rank in parentheses)",
             list(range(len(final_model_data[1]))),
             format_func=lambda x: whr_pp[country_label].unique()[x] + " (" + str(int(target_ranks.iloc[x])) + ")",
-            max_selections=4
+            max_selections=4,
+            default=[random.randint(0, len(final_model_data[1]) - 1)]
         )
 
         for shap_country in shap_countries:
@@ -617,12 +638,13 @@ if page == pages[5]:
                 + " - " + target_label + " = " + str(round(whr_pp.iloc[whr_idx][target_label], 2))
             )
             st.pyplot(fig)
+            st.write("")
 
         st.write(f'''
             - Studying {fmt.em("SHAP")} coefficients by country allows us to refine our observations, in particular the significant impact of {fmt.var('gdp')}, {fmt.var('life')}, {fmt.var('support')} and {fmt.var('positivity')} in estimating the {fmt.var('target')}.
             - Generally, the more accurate the prediction, the more the weight of each {fmt.em("feature")} is proportionally equivalent to the average weight observed with the global method, while the less accurate predictions sometimes show surprising distributions.
             - These graphs also clearly illustrate that prediction errors are more pronounced for countries with a low happiness rate, like {fmt.em("Afghanistan")}, {fmt.em("Lebanon")} or {fmt.em("Sierra Leone")}.
-            - Surprisingly, {fmt.var('support')} and {fmt.em('positivity')} sometimes appear to be slightly over-represented in terms of impact compared to {fmt.em('gdp')} and {fmt.em('life')} for these lowest-ranked countries.
+            - Surprisingly, {fmt.var('support')} and {fmt.var('positivity')} sometimes appear to be slightly over-represented in terms of impact compared to {fmt.var('gdp')} and {fmt.var('life')} for these lowest-ranked countries.
             - For top-ranked countries, such as {fmt.em("Denmark")}, {fmt.em("Finland")} or {fmt.em("Iceland")}, {fmt.var('corruption')} has a disproportionate impact compared to its overall impact.
             - The actual impact of each {fmt.em("feature")} for each record seems to generally respect the ratio between the global coefficient and the {fmt.em("feature")}'s value, all other things being equal. For example, we observe that a {fmt.em("feature")} with a supposed low weight can have a significant impact if its value is particularly high, as illustrated by {fmt.var('generosity')} in the cases of {fmt.em("Uzbekistan")} and {fmt.em("Ukraine")}.
             - {fmt.var('negativity')} has no impact, regardless of its value.
@@ -652,6 +674,7 @@ if page == pages[6]:
     data = ml.prepare(whr_24_pp, features)
     model = ml.execute('Linear Regression', data)
 
+    st.write("")
     st.subheader("Metrics")
     R2, MAE, RMSE = ml.metrics(model, data)
 
@@ -666,18 +689,35 @@ if page == pages[6]:
     with metrics_col3:
         ml.metric_widget("RMSE", RMSE, 'inverse')
 
+    st.write("")
     st.subheader("Coefficients")
     explainer = shap.LinearExplainer(model, data[0])
     shap_values = explainer.shap_values(data[1])
 
     fig, ax = plt.subplots()
-    ax = shap.summary_plot(shap_values, data[1], plot_type='bar')
-    plt.title("Absolute values")
+    ax = shap.summary_plot(
+        shap_values,
+        data[1],
+        plot_type='bar',
+        axis_color=st.config.get_option('theme.textColor')
+    )
+    plt.yticks(fontsize=11)
+    plt.xticks(fontsize=9)
+    plt.title("Absolute values", fontsize=12)
+    st.write("")
     st.pyplot(fig)
-    
+
     fig, ax = plt.subplots()
-    ax = shap.summary_plot(shap_values, data[1])
-    plt.title("Actual values")
+    ax = shap.summary_plot(
+        shap_values,
+        data[1],
+        axis_color=st.config.get_option('theme.textColor'),
+        color_bar_label=None
+    )
+    plt.title("Actual values", fontsize=12)
+    plt.yticks(fontsize=11)
+    plt.xticks(fontsize=9)
+    st.write("")
     st.pyplot(fig)
     
     ranks = data[3].rank(ascending=False)
@@ -685,7 +725,8 @@ if page == pages[6]:
     country = st.selectbox(
         "Choose a country",
         list(range(len(data[1]))),
-        format_func=lambda x: whr_24_pp[country_label].unique()[x] + " (" + str(int(ranks.iloc[x])) + ")"
+        format_func=lambda x: whr_24_pp[country_label].unique()[x] + " (" + str(int(ranks.iloc[x])) + ")",
+        index=random.randint(0, len(data[1]) - 1)
     )
     
     idx = int(data[1].reset_index(names='idx').iloc[country]['idx'])
@@ -705,10 +746,12 @@ if page == pages[6]:
     )
     st.pyplot(fig)
 
+    st.write("")
     st.subheader("Try it")
     st.write(f"Adjust following values to simulate the predicted value by the model, and illustrate the influence of each {fmt.em("feature")} on the {fmt.em("target")} variable.")
 
     st.caption("The range of possible values goes from the lowest to the highest present in the dataset. The default values on loading correspond to the median values of the dataset.")
+    st.write("")
 
     feat_vals = {}
 
@@ -726,6 +769,7 @@ if page == pages[6]:
 
     feat_vals_sc = sc.transform(feat_vals_df)
     
+    st.write("")
     st.metric(f"Predicted {target_label}", round(model.predict(feat_vals_sc)[0], 3))
 
 
@@ -736,9 +780,11 @@ if page == pages[7]:
     st.write(f"As expected, {fmt.var('gdp')} and {fmt.var('life')} are 2 of the main factors which contribute to the level of happiness felt, a relationship which could be summarized in a slogan like:")
 
     st.write(fmt.cite("Healthy, Wealthy, Happy!"))
+    st.write("")
 
     st.write(f"Even if these indicators are well-known in political science, this study shows that they are not sufficient on their own.")
 
+    st.write("")
     st.subheader("Effects of inequality on the sense of happiness")
     st.write("First of all, we cannot just base an analysis on their average value. For example, we observed a threshold effect seeming to indicate that from a certain peak, say a “satisfactory” standard of living and health, happiness no longer increases proportionally.")
 
@@ -746,18 +792,21 @@ if page == pages[7]:
 
     st.write("We could deduce an interest, in terms of political decision, in prioritizing the reduction of inequalities rather than the gross value of the GDP of a given country, for example by focusing on the distribution of income (minimum, quantiles, median...).")
 
+    st.write("")
     st.subheader("Primary needs and aspirations")
-    st.write(f"We also note that in the most privileged contexts (high {fmt.var('gdp')} and {fmt.var('life')}, stable and peaceful countries), other factors become more significant and allow for distinguishing between countries, notably the level of corruption.")
+    st.write(f"We also note that in the most privileged contexts (high {fmt.var('gdp')} and {fmt.var('life')}, stable and peaceful countries), other factors become more significant and allow for distinguishing between countries, notably the {fmt.var('corruption')}.")
 
     st.write(f"On the contrary, in the least privileged situations (poor countries, political instability or even war), the notions of corruption and freedom carry very little weight compared to indicators such as {fmt.var('gdp')} and {fmt.var('life')}.")
 
     st.write("It seems quite intuitive to consider that it is first necessary to meet primary needs, but that once these needs are met, notions such as freedom or ethics become important concerns.")
 
+    st.write("")
     st.subheader("About social support")
     st.write(f"Among the characteristics having the most impact in explaining the happiness rate, {fmt.var('support')} raises questions about the way in which it could influence political decisions.")
     
     st.write(f"It therefore seems a priori to arise from a personal context (family or friends), independent of the socio-economic context. But if we have to consider that the government lacks levers to improve it, we can imagine that it must consider ways to compensate for it, how to provide {fmt.var('support')} to those who lack it, for example by providing assistance for isolated individuals.")
 
     st.write(fmt.cite("This characteristic implicitly raises the question of the right to failure or accident, at the heart of health insurance systems or unemployment benefits for example, mechanisms aimed at attenuating inequalities by pooling risks."))
+    st.write("")
 
     st.write("[Read full report in PDF (French)](https://www.nobots.fr/docs/dst-whr.pdf).")
