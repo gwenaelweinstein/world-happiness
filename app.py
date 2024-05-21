@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import ml_context as mlc
 import pandas as pd
 import plotly.express as px
+import random
 import shap
 import streamlit as st
 from sklearn.preprocessing import StandardScaler
@@ -505,7 +506,7 @@ if page == pages[4]:
             st.write(fmt.cite(f"In order to find the best compromise between performance and robustness, we'll try to optimize each of these models with {fmt.em("Grid Search")} to determine the best hyperparameters."))
             st.write("")
 
-            fmt.warning("Grid Search optimization with many models and parameters can take a very long time, proceed with caution.")
+            fmt.warning("Grid Search optimization with many models and parameters can take a very long time, proceed with care.")
 
             gs_proceed = st.button("Proceed to Grid Search optimization", type='primary')
             
@@ -546,7 +547,7 @@ if page == pages[4]:
 if page == pages[5]:
     st.write(f"Inspired by game theory and based on {fmt.em("Shapley")} values, the {fmt.em("SHAP")} method - {fmt.em("SHapley Additive exPlanations")} - is a technique for interpreting the results of a machine learning model which makes it possible to estimate the part taken by each characteristic in the prediction.")
     
-    st.write("It has the particular advantage of allowing analysis at the global and local level, of being efficient and quite simple to use.")
+    st.write("It has the particular advantage of allowing analysis at a global and a local level, of being efficient and quite simple to use.")
 
     if st.session_state.whr_pp is None:
         fmt.error("You need to run Preprocessing step before processing Interpretation.")
@@ -579,7 +580,7 @@ if page == pages[5]:
 
         st.write(f'''
             - Displaying absolute {fmt.em("SHAP")} values first reveals the particularly pronounced influence of {fmt.var('gdp')} on the prediction.
-            - Next, we observe a cluster of three high-impact {fmt.em("features")}, consisting of {fmt.var('support')}, {fmt.var('positivity')} and {fmt.var('life')}.
+            - Next, we observe a cluster of three high-impact {fmt.em("features")}: {fmt.var('support')}, {fmt.var('positivity')} and {fmt.var('life')}.
             - Other {fmt.em("features")} have a weaker impact, although {fmt.var('corruption')} is not negligible.
             - The impact of {fmt.var('negativity')} is null.
         ''')
@@ -600,10 +601,11 @@ if page == pages[5]:
         st.write(f'''
             - Displaying actual {fmt.em("SHAP")} values confirms the hierarchy observed previously.
             - With the exception of {fmt.var('corruption')}, we observe that high values have a positive impact on the prediction, and vice versa.
-            - {fmt.var('gdp')}, {fmt.var('support')} and {fmt.var('positivity')} exhibit widely spread values, confirming their strong impact on the prediction.
+            - {fmt.var('gdp')}, {fmt.var('support')} and {fmt.var('positivity')} show widely spread values, confirming their strong impact on the prediction.
             - We also observe a shift towards the negative for these three {fmt.em("features")}, indicating a greater negative impact of low values than the positive impact of high values. This could suggest a threshold effect, where either values are no longer likely to increase, or their increase no longer leads to an increase in the {fmt.em("target")}.
             - This shift towards the negative also means that median values have a negative impact, particularly noticeable for {fmt.var('support')}.
-            - In contrast, while {fmt.var('corruption')} has a limited negative impact, it can have a non-negligible positive impact for the lowest values. Other {fmt.em("features")} have very limited, if any, impact.
+            - In contrast, while {fmt.var('corruption')} has a limited negative impact, it can have a non-negligible positive impact for the lowest values.
+            - Other {fmt.em("features")} have very limited, if any, impact.
         ''')
 
         st.write("")
@@ -614,7 +616,8 @@ if page == pages[5]:
             "Select countries (rank in parentheses)",
             list(range(len(final_model_data[1]))),
             format_func=lambda x: whr_pp[country_label].unique()[x] + " (" + str(int(target_ranks.iloc[x])) + ")",
-            max_selections=4
+            max_selections=4,
+            default=[random.randint(0, len(final_model_data[1]) - 1)]
         )
 
         for shap_country in shap_countries:
@@ -635,12 +638,13 @@ if page == pages[5]:
                 + " - " + target_label + " = " + str(round(whr_pp.iloc[whr_idx][target_label], 2))
             )
             st.pyplot(fig)
+            st.write("")
 
         st.write(f'''
             - Studying {fmt.em("SHAP")} coefficients by country allows us to refine our observations, in particular the significant impact of {fmt.var('gdp')}, {fmt.var('life')}, {fmt.var('support')} and {fmt.var('positivity')} in estimating the {fmt.var('target')}.
             - Generally, the more accurate the prediction, the more the weight of each {fmt.em("feature")} is proportionally equivalent to the average weight observed with the global method, while the less accurate predictions sometimes show surprising distributions.
             - These graphs also clearly illustrate that prediction errors are more pronounced for countries with a low happiness rate, like {fmt.em("Afghanistan")}, {fmt.em("Lebanon")} or {fmt.em("Sierra Leone")}.
-            - Surprisingly, {fmt.var('support')} and {fmt.em('positivity')} sometimes appear to be slightly over-represented in terms of impact compared to {fmt.em('gdp')} and {fmt.em('life')} for these lowest-ranked countries.
+            - Surprisingly, {fmt.var('support')} and {fmt.var('positivity')} sometimes appear to be slightly over-represented in terms of impact compared to {fmt.var('gdp')} and {fmt.var('life')} for these lowest-ranked countries.
             - For top-ranked countries, such as {fmt.em("Denmark")}, {fmt.em("Finland")} or {fmt.em("Iceland")}, {fmt.var('corruption')} has a disproportionate impact compared to its overall impact.
             - The actual impact of each {fmt.em("feature")} for each record seems to generally respect the ratio between the global coefficient and the {fmt.em("feature")}'s value, all other things being equal. For example, we observe that a {fmt.em("feature")} with a supposed low weight can have a significant impact if its value is particularly high, as illustrated by {fmt.var('generosity')} in the cases of {fmt.em("Uzbekistan")} and {fmt.em("Ukraine")}.
             - {fmt.var('negativity')} has no impact, regardless of its value.
@@ -721,7 +725,8 @@ if page == pages[6]:
     country = st.selectbox(
         "Choose a country",
         list(range(len(data[1]))),
-        format_func=lambda x: whr_24_pp[country_label].unique()[x] + " (" + str(int(ranks.iloc[x])) + ")"
+        format_func=lambda x: whr_24_pp[country_label].unique()[x] + " (" + str(int(ranks.iloc[x])) + ")",
+        index=random.randint(0, len(data[1]) - 1)
     )
     
     idx = int(data[1].reset_index(names='idx').iloc[country]['idx'])
@@ -746,6 +751,7 @@ if page == pages[6]:
     st.write(f"Adjust following values to simulate the predicted value by the model, and illustrate the influence of each {fmt.em("feature")} on the {fmt.em("target")} variable.")
 
     st.caption("The range of possible values goes from the lowest to the highest present in the dataset. The default values on loading correspond to the median values of the dataset.")
+    st.write("")
 
     feat_vals = {}
 
@@ -788,7 +794,7 @@ if page == pages[7]:
 
     st.write("")
     st.subheader("Primary needs and aspirations")
-    st.write(f"We also note that in the most privileged contexts (high {fmt.var('gdp')} and {fmt.var('life')}, stable and peaceful countries), other factors become more significant and allow for distinguishing between countries, notably the level of corruption.")
+    st.write(f"We also note that in the most privileged contexts (high {fmt.var('gdp')} and {fmt.var('life')}, stable and peaceful countries), other factors become more significant and allow for distinguishing between countries, notably the {fmt.var('corruption')}.")
 
     st.write(f"On the contrary, in the least privileged situations (poor countries, political instability or even war), the notions of corruption and freedom carry very little weight compared to indicators such as {fmt.var('gdp')} and {fmt.var('life')}.")
 
