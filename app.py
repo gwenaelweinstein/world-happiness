@@ -613,11 +613,11 @@ if page == pages[5]:
         target_ranks = final_model_data[3].rank(ascending=False)
 
         shap_countries = st.multiselect(
-            "Select countries (rank in parentheses)",
+            "Select up to 4 countries (rank in parentheses)",
             list(range(len(final_model_data[1]))),
             format_func=lambda x: whr_pp[country_label].unique()[x] + " (" + str(int(target_ranks.iloc[x])) + ")",
             max_selections=4,
-            default=[random.randint(0, len(final_model_data[1]) - 1)]
+            default=0
         )
 
         for shap_country in shap_countries:
@@ -725,19 +725,18 @@ if page == pages[6]:
     country = st.selectbox(
         "Choose a country",
         list(range(len(data[1]))),
-        format_func=lambda x: whr_24_pp[country_label].unique()[x] + " (" + str(int(ranks.iloc[x])) + ")",
-        index=random.randint(0, len(data[1]) - 1)
+        format_func=lambda x: whr_24_pp[country_label].unique()[x] + " (" + str(int(ranks.iloc[x])) + ")"
     )
-    
-    idx = int(data[1].reset_index(names='idx').iloc[country]['idx'])
 
+    idx = int(data[1].reset_index(names='idx').iloc[country]['idx'])
+        
     expl = shap.Explanation(
         values = shap_values[country],
         base_values = explainer.expected_value,
         data = whr_24_pp[features].iloc[idx,:],
         feature_names = data[1].reset_index(drop=True).columns
     )
-    
+        
     fig, ax = plt.subplots()
     ax = shap.plots.waterfall(expl)
     plt.title(
